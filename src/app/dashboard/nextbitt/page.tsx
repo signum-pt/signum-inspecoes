@@ -11,18 +11,15 @@ interface ResultadoEndpoint {
   erro?: string
 }
 
-interface Resultados {
-  [key: string]: ResultadoEndpoint
-}
-
-function SecaoResultado({ chave, resultado }: { chave: string; resultado: ResultadoEndpoint }) {
+function SecaoResultado({ resultado }: { resultado: ResultadoEndpoint }) {
   const [aberto, setAberto] = useState(false)
+  const temDados = resultado.ok && resultado.data && resultado.data.length > 0
 
   return (
     <div className="border border-gray-200 rounded-lg overflow-hidden">
       <button
-        onClick={() => setAberto(!aberto)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-white hover:bg-gray-50 transition-colors"
+        onClick={() => temDados && setAberto(!aberto)}
+        className={`w-full flex items-center justify-between px-4 py-3 bg-white transition-colors ${temDados ? 'hover:bg-gray-50 cursor-pointer' : 'cursor-default'}`}
       >
         <div className="flex items-center gap-3">
           {resultado.ok
@@ -31,20 +28,22 @@ function SecaoResultado({ chave, resultado }: { chave: string; resultado: Result
           }
           <span className="text-sm font-medium text-gray-900">{resultado.desc}</span>
           {resultado.ok && resultado.data && (
-            <span className="text-xs text-gray-400">{resultado.data.length} resultado(s)</span>
+            <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">{resultado.data.length} registos</span>
           )}
           {!resultado.ok && (
             <span className="text-xs text-red-500">{resultado.erro}</span>
           )}
         </div>
-        {resultado.ok && resultado.data && resultado.data.length > 0 && (
-          aberto ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />
+        {temDados && (
+          aberto
+            ? <ChevronDown className="w-4 h-4 text-gray-400" />
+            : <ChevronRight className="w-4 h-4 text-gray-400" />
         )}
       </button>
 
-      {aberto && resultado.data && resultado.data.length > 0 && (
-        <div className="border-t border-gray-100 bg-gray-50 p-4">
-          <pre className="text-xs text-gray-700 overflow-x-auto whitespace-pre-wrap">
+      {aberto && resultado.data && (
+        <div className="border-t border-gray-100 bg-gray-50 p-4 max-h-80 overflow-y-auto">
+          <pre className="text-xs text-gray-700 whitespace-pre-wrap">
             {JSON.stringify(resultado.data, null, 2)}
           </pre>
         </div>
@@ -54,28 +53,21 @@ function SecaoResultado({ chave, resultado }: { chave: string; resultado: Result
 }
 
 export default function NextbittDiagnosticoPage() {
-  const [modo, setModo] = useState<'token' | 'credenciais'>('token')
+  const [ambiente, setAmbiente] = useState<'qa' | 'prod'>('qa')
   const [token, setToken] = useState('')
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
   const [a_testar, setATestar] = useState(false)
   const [erro, setErro] = useState('')
-  const [resultados, setResultados] = useState<Resultados | null>(null)
-  const [modoUsado, setModoUsado] = useState('')
+  const [resultado, setResultado] = useState<{ base: string; resultados: Record<string, ResultadoEndpoint> } | null>(null)
 
   async function testar() {
     setATestar(true)
     setErro('')
-    setResultados(null)
-
-    const body = modo === 'token'
-      ? { token }
-      : { username, password }
+    setResultado(null)
 
     const res = await fetch('/api/nextbitt/diagnostico', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ token: token || undefined, ambiente }),
     })
 
     const json = await res.json()
@@ -86,140 +78,101 @@ export default function NextbittDiagnosticoPage() {
       return
     }
 
-    setResultados(json.resultados)
-    setModoUsado(json.modo)
+    setResultado(json)
   }
 
-  const totalOk = resultados ? Object.values(resultados).filter(r => r.ok).length : 0
-  const total = resultados ? Object.keys(resultados).length : 0
+  const totalOk = resultado ? Object.values(resultado.resultados).filter(r => r.ok).length : 0
+  const total = resultado ? Object.keys(resultado.resultados).length : 0
 
   return (
     <div className="p-8 max-w-3xl">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Diagnóstico Nextbitt</h1>
         <p className="text-gray-500 text-sm mt-1">
-          Testa a ligação à API Nextbitt e consulta os códigos disponíveis no sistema da Sonae.
+          Testa a ligação à API e consulta os códigos configurados no sistema da Sonae.
         </p>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6 space-y-5">
-        {/* Modo */}
+        {/* Ambiente */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Método de autenticação</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Ambiente</label>
           <div className="flex gap-3">
-            <button
-              onClick={() => setModo('token')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                modo === 'token'
-                  ? 'text-white border-transparent'
-                  : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-              }`}
-              style={modo === 'token' ? { backgroundColor: '#D41317' } : {}}
-            >
-              Bearer Token
-            </button>
-            <button
-              onClick={() => setModo('credenciais')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                modo === 'credenciais'
-                  ? 'text-white border-transparent'
-                  : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-              }`}
-              style={modo === 'credenciais' ? { backgroundColor: '#D41317' } : {}}
-            >
-              Username / Password
-            </button>
+            {(['qa', 'prod'] as const).map(a => (
+              <button key={a} onClick={() => setAmbiente(a)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                  ambiente === a ? 'text-white border-transparent' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+                style={ambiente === a ? { backgroundColor: '#D41317' } : {}}>
+                {a === 'qa' ? 'QA (testes)' : 'Produção'}
+              </button>
+            ))}
           </div>
+          <p className="text-xs text-gray-400 mt-1.5">
+            {ambiente === 'qa' ? 'sonaemcapitest.nextbitt.net' : 'sonaemcapi.nextbitt.net'}
+          </p>
         </div>
 
-        {/* Campos */}
-        {modo === 'token' ? (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Token</label>
-            <input
-              type="text"
-              value={token}
-              onChange={e => setToken(e.target.value)}
-              placeholder="Cole aqui o token Bearer..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#D41317]"
-            />
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-              <input
-                type="text"
-                value={username}
-                onChange={e => setUsername(e.target.value)}
-                placeholder="username.sonae"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D41317]"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D41317]"
-              />
-            </div>
-          </div>
-        )}
-
-        <div className="pt-1">
-          <button
-            onClick={testar}
-            disabled={a_testar || (modo === 'token' ? !token : !username || !password)}
-            className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50 transition-colors"
-            style={{ backgroundColor: '#D41317' }}
-          >
-            {a_testar && <Loader2 className="w-4 h-4 animate-spin" />}
-            {a_testar ? 'A testar ligação...' : 'Testar ligação'}
-          </button>
+        {/* Token */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Token <span className="text-gray-400 font-normal">(deixar vazio para usar o configurado no servidor)</span>
+          </label>
+          <input
+            type="text"
+            value={token}
+            onChange={e => setToken(e.target.value)}
+            placeholder="Bearer token..."
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#D41317]"
+          />
         </div>
+
+        <button
+          onClick={testar}
+          disabled={a_testar}
+          className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50 transition-colors"
+          style={{ backgroundColor: '#D41317' }}
+        >
+          {a_testar && <Loader2 className="w-4 h-4 animate-spin" />}
+          {a_testar ? 'A testar...' : 'Testar ligação'}
+        </button>
       </div>
 
-      {/* Erro */}
       {erro && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
-          <div className="flex items-start gap-3">
-            <XCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-red-800">Falha na ligação</p>
-              <p className="text-sm text-red-600 mt-1 whitespace-pre-wrap">{erro}</p>
-            </div>
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex items-start gap-3">
+          <XCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-red-800">Falha na ligação</p>
+            <p className="text-sm text-red-600 mt-1">{erro}</p>
           </div>
         </div>
       )}
 
-      {/* Resultados */}
-      {resultados && (
+      {resultado && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-gray-900">Resultados</h2>
+            <div>
+              <h2 className="text-base font-semibold text-gray-900">Resultados</h2>
+              <p className="text-xs text-gray-400 mt-0.5">{resultado.base}</p>
+            </div>
             <span className={`text-sm font-medium px-3 py-1 rounded-full ${
-              totalOk === total
-                ? 'bg-green-100 text-green-700'
-                : totalOk === 0
-                ? 'bg-red-100 text-red-700'
-                : 'bg-yellow-100 text-yellow-700'
+              totalOk === total ? 'bg-green-100 text-green-700'
+              : totalOk === 0 ? 'bg-red-100 text-red-700'
+              : 'bg-yellow-100 text-yellow-700'
             }`}>
-              {totalOk}/{total} endpoints OK
+              {totalOk}/{total} OK
             </span>
           </div>
 
           <div className="space-y-2">
-            {Object.entries(resultados).map(([chave, resultado]) => (
-              <SecaoResultado key={chave} chave={chave} resultado={resultado} />
+            {Object.entries(resultado.resultados).map(([chave, r]) => (
+              <SecaoResultado key={chave} resultado={r} />
             ))}
           </div>
 
           {totalOk > 0 && (
-            <p className="text-xs text-gray-400 pt-2">
-              Clica em cada linha para ver os dados devolvidos pela API — esses são os códigos a usar na integração.
+            <p className="text-xs text-gray-400 pt-1">
+              Clica em cada linha para ver os dados — esses são os códigos a usar na integração.
             </p>
           )}
         </div>
