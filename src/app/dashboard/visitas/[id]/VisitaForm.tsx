@@ -581,7 +581,7 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
             PDF Assinado
           </a>
         )}
-        {(estadoVisita === 'assinada' || estadoVisita === 'concluida') && visita.lojas?.nextbitt_lo_id && (
+        {estadoVisita === 'assinada' && visita.pdf_assinado_url && visita.lojas?.nextbitt_lo_id && (
           nextbittExportado ? (
             <div className="flex items-center gap-2 border border-blue-200 text-blue-600 bg-blue-50 px-5 py-2.5 rounded-lg text-sm font-medium">
               <Send className="w-4 h-4" />
