@@ -99,6 +99,7 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
   const [aExportar, setAExportar] = useState(false)
   const [erroNextbitt, setErroNextbitt] = useState('')
   const [avisoNextbitt, setAvisoNextbitt] = useState('')
+  const [logsNextbitt, setLogsNextbitt] = useState<string[]>([])
   const [nextbittExportado, setNextbittExportado] = useState(!!visita.nextbitt_id)
   const [nextbittExportadoEm, setNextbittExportadoEm] = useState<string | null>(visita.nextbitt_exportado_em ?? null)
 
@@ -311,6 +312,7 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
         body: JSON.stringify({ visita_id: visita.id }),
       })
       const json = await res.json()
+      if (json.logs) setLogsNextbitt(json.logs)
       if (!res.ok) {
         setErroNextbitt(json.erro ?? 'Erro ao exportar.')
         setAExportar(false)
@@ -320,8 +322,6 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
       setNextbittExportadoEm(new Date().toISOString())
       if (json.aviso) {
         setAvisoNextbitt(json.aviso)
-      } else {
-        setModalNextbitt(false)
       }
     } catch {
       setErroNextbitt('Erro de rede. Não foi possível contactar o servidor. Tente novamente.')
@@ -747,17 +747,11 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
             </div>
 
             <div className="px-6 py-5 space-y-3">
-              {avisoNextbitt ? (
-                <>
-                  <div className="flex items-start gap-3 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
-                    <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-green-800 font-medium">Pedido criado com sucesso no Nextbitt.</p>
-                  </div>
-                  <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
-                    <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-amber-800 whitespace-pre-line">{avisoNextbitt}</p>
-                  </div>
-                </>
+              {nextbittExportado ? (
+                <div className="flex items-start gap-3 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+                  <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-green-800 font-medium">Pedido criado com sucesso no Nextbitt.</p>
+                </div>
               ) : (
                 <>
                   <div className="bg-gray-50 rounded-lg px-4 py-3 text-xs text-gray-500 space-y-1">
@@ -773,12 +767,25 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
                   )}
                 </>
               )}
+              {avisoNextbitt && (
+                <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-amber-800 whitespace-pre-line">{avisoNextbitt}</p>
+                </div>
+              )}
+              {logsNextbitt.length > 0 && (
+                <div className="bg-gray-900 rounded-lg px-3 py-2.5 max-h-48 overflow-y-auto">
+                  {logsNextbitt.map((l, i) => (
+                    <p key={i} className="text-xs font-mono text-gray-300 leading-5">{l}</p>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="px-6 py-4 bg-gray-50 rounded-b-2xl flex gap-2">
-              {avisoNextbitt ? (
+              {nextbittExportado ? (
                 <button
-                  onClick={() => { setModalNextbitt(false); setAvisoNextbitt('') }}
+                  onClick={() => { setModalNextbitt(false); setLogsNextbitt([]) }}
                   className="flex-1 py-2 rounded-lg text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-100 transition-colors"
                 >
                   Fechar
@@ -794,7 +801,7 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
                     {aExportar ? 'A exportar...' : 'Confirmar exportação'}
                   </button>
                   <button
-                    onClick={() => { setModalNextbitt(false); setErroNextbitt('') }}
+                    onClick={() => { setModalNextbitt(false); setErroNextbitt(''); setLogsNextbitt([]) }}
                     disabled={aExportar}
                     className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 border border-gray-200 hover:bg-gray-100 disabled:opacity-50 transition-colors"
                   >
