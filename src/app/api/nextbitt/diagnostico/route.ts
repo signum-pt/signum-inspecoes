@@ -6,7 +6,8 @@ const ODATA_PROD = 'https://sonaemcapi.nextbitt.net/odata'
 
 async function fetchEndpoint(base: string, token: string, path: string, top = 50) {
   try {
-    const res = await fetch(`${base}/${path}?$top=${top}`, {
+    const sep = path.includes('?') ? '&' : '?'
+    const res = await fetch(`${base}/${path}${sep}$top=${top}`, {
       headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
     })
     if (!res.ok) return { ok: false, status: res.status, erro: `HTTP ${res.status}` }
@@ -32,7 +33,8 @@ export async function POST(req: NextRequest) {
     { key: 'situacoes',   path: 'wo_wostatus', desc: 'Situações (dy_id_stat)' },
     { key: 'equipas',     path: 'wo_trade',    desc: 'Equipas (tr_id)' },
     { key: 'sectores',    path: 'as_sector',   desc: 'Sectores (se_id)' },
-    { key: 'localizacoes',path: 'as_locat',    desc: 'Localizações das lojas (lo_id)', top: 200 },
+    { key: 'localizacoes',path: 'as_locat',    desc: 'Todas as localizações (lo_id)', top: 200 },
+    { key: 'lojas',       path: "as_locat?$filter=lo_parent%20eq%20'PT'", desc: 'Grupos de lojas (filhos de PT)', top: 100 },
   ]
 
   const resultados: Record<string, any> = {}
