@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
   if (!t) return NextResponse.json({ erro: 'Token em falta.' }, { status: 400 })
 
   const endpoints = [
+    { key: 'pedido_243724', path: "wo_request('243724')", desc: 'Pedido re_id=243724 (último criado)', top: 1 },
     { key: 'situacoes',   path: 'wo_wostatus', desc: 'Situações (dy_id_stat)' },
     { key: 'equipas',     path: 'wo_trade',    desc: 'Equipas (tr_id)' },
     { key: 'sectores',    path: 'as_sector',   desc: 'Sectores (se_id)' },
