@@ -556,14 +556,6 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
         )}
       </div>
 
-      {/* Observações gerais */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
-        <label className="block text-sm font-semibold text-gray-900 mb-2">Observações gerais</label>
-        <textarea value={observacoes} onChange={e => setObs(e.target.value)}
-          disabled={!podeEditar} rows={4}
-          placeholder="Observações adicionais sobre a visita..."
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D41317] resize-none disabled:bg-gray-50" />
-      </div>
 
       {/* Acções — barra fixa no fundo em mobile/tablet, inline no desktop */}
       <div className="fixed bottom-0 left-0 right-0 lg:static bg-white lg:bg-transparent border-t border-gray-200 lg:border-0 px-4 py-3 lg:p-0 shadow-[0_-2px_12px_rgba(0,0,0,0.08)] lg:shadow-none z-30 flex items-center gap-2 lg:gap-3 flex-wrap">
