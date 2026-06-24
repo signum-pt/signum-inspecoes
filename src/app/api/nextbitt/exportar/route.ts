@@ -79,15 +79,35 @@ export async function POST(req: NextRequest) {
       `Técnico: ${visita.profiles?.nome ?? ''}`,
     ].filter(Boolean).join('\n')
 
-    const payload = {
+    // Obter as_code da Instalação Elétrica da loja
+    const lo_id_padded = visita.lojas.nextbitt_lo_id.padEnd(20)
+    let asCode: string | undefined
+    try {
+      const asRes = await fetch(
+        `${BASE}/as_assets?$filter=lo_id eq '${encodeURIComponent(lo_id_padded)}' and ag_id eq 'INE            ' and ag_subid eq 'TE             '&$select=as_code&$top=1`,
+        { headers }
+      )
+      if (asRes.ok) {
+        const asData = await asRes.json()
+        asCode = asData.value?.[0]?.as_code?.trim()
+        log(`Ativo Instalação Elétrica: ${asCode ?? 'não encontrado'}`)
+      } else {
+        log(`Aviso: não foi possível obter as_code (HTTP ${asRes.status})`)
+      }
+    } catch (e: any) {
+      log(`Aviso: erro ao obter as_code: ${e?.message}`)
+    }
+
+    const payload: Record<string, any> = {
       xx_datep: dataVisita,
-      lo_id: visita.lojas.nextbitt_lo_id.padEnd(20),
+      lo_id: lo_id_padded,
       xx_descrip: descricao.slice(0, 100),
       dy_id_stat: '01',
       re_requestedby: visita.profiles?.nome ?? '',
       xx_obs: observacoes,
       re_extref: visita_id.slice(0, 30),
     }
+    if (asCode) payload.as_code = asCode
     log(`Payload wo_request: ${JSON.stringify(payload)}`)
 
     // Criar Pedido de Intervenção
