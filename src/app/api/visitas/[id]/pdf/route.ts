@@ -5,36 +5,27 @@ import { createClient } from '@/lib/supabase/server'
 import RelatorioPDF from '@/lib/pdf/RelatorioPDF'
 import path from 'path'
 import fs from 'fs'
-import sharp from 'sharp'
 
-// Converte imagem (URL remota ou ficheiro local) para PNG normalizado
 async function logoParaBase64(origem: string, fallbackFicheiro?: string): Promise<string> {
   try {
-    let buffer: Buffer
-
     if (origem.startsWith('http')) {
-      // Buscar do Supabase Storage
       const res = await fetch(origem)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const ab = await res.arrayBuffer()
-      buffer = Buffer.from(ab)
+      const buf = Buffer.from(ab)
+      const mime = res.headers.get('content-type') ?? 'image/png'
+      return `data:${mime};base64,${buf.toString('base64')}`
     } else if (fallbackFicheiro) {
-      // Ficheiro local
       const caminho = path.join(process.cwd(), 'public', 'logos', fallbackFicheiro)
       if (!fs.existsSync(caminho)) return ''
-      buffer = fs.readFileSync(caminho)
-    } else {
-      return ''
+      const buf = fs.readFileSync(caminho)
+      const ext = fallbackFicheiro.split('.').pop()?.toLowerCase() ?? 'png'
+      const mime = ext === 'jpg' ? 'image/jpeg' : `image/${ext}`
+      return `data:${mime};base64,${buf.toString('base64')}`
     }
-
-    const png = await sharp(buffer)
-      .flatten({ background: { r: 255, g: 255, b: 255 } })
-      .png()
-      .toBuffer()
-    return `data:image/png;base64,${png.toString('base64')}`
+    return ''
   } catch (e) {
     console.warn(`Erro ao processar logo:`, e)
-    // Tentar fallback local se tinha URL remota
     if (origem.startsWith('http') && fallbackFicheiro) {
       return logoParaBase64('', fallbackFicheiro)
     }
