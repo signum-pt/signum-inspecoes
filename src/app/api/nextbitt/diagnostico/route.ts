@@ -34,10 +34,19 @@ export async function POST(req: NextRequest) {
     { key: 'equipas',     path: 'wo_trade',    desc: 'Equipas (tr_id)' },
     { key: 'sectores',    path: 'as_sector',   desc: 'Sectores (se_id)' },
     { key: 'localizacoes',path: 'as_locat',    desc: 'Todas as localizações (lo_id)', top: 200 },
-    { key: 'lojas_grupos', path: "as_locat?$filter=lo_parent%20eq%20'PT'",    desc: 'Grupos de lojas (filhos de PT)', top: 100 },
-    { key: 'lojas_cnt',   path: "as_locat?$filter=lo_parent%20eq%20'PTCNT'", desc: 'Lojas Continente (lo_id individuais)', top: 200 },
-    { key: 'lojas_mdl',   path: "as_locat?$filter=lo_parent%20eq%20'PTMDL'", desc: 'Lojas Modelo (lo_id individuais)', top: 200 },
-    { key: 'lojas_cbd',   path: "as_locat?$filter=lo_parent%20eq%20'PTCBD'", desc: 'Lojas Bom Dia (lo_id individuais)', top: 200 },
+    { key: 'lojas_grupos',  path: "as_locat?$filter=lo_parent%20eq%20'PT'",     desc: 'Grupos de lojas (filhos de PT)',          top: 100 },
+    { key: 'lojas_cnt',    path: "as_locat?$filter=lo_parent%20eq%20'PTCNT'",  desc: 'DOPs Continente',                         top: 50  },
+    { key: 'lojas_cnt1',   path: "as_locat?$filter=lo_parent%20eq%20'PTCNT1'", desc: 'Continente Norte (lojas individuais)',     top: 200 },
+    { key: 'lojas_cnt5',   path: "as_locat?$filter=lo_parent%20eq%20'PTCNT5'", desc: 'Continente Sul (lojas individuais)',       top: 200 },
+    { key: 'lojas_mdl',    path: "as_locat?$filter=lo_parent%20eq%20'PTMDL'",  desc: 'DOPs Modelo',                             top: 50  },
+    { key: 'lojas_mdl1',   path: "as_locat?$filter=lo_parent%20eq%20'PTMDL1'", desc: 'Modelo Norte (lojas individuais)',         top: 200 },
+    { key: 'lojas_mdl2',   path: "as_locat?$filter=lo_parent%20eq%20'PTMDL2'", desc: 'Modelo Centro Norte (lojas individuais)', top: 200 },
+    { key: 'lojas_mdl4',   path: "as_locat?$filter=lo_parent%20eq%20'PTMDL4'", desc: 'Modelo Centro Sul (lojas individuais)',   top: 200 },
+    { key: 'lojas_mdl5',   path: "as_locat?$filter=lo_parent%20eq%20'PTMDL5'", desc: 'Modelo Sul (lojas individuais)',          top: 200 },
+    { key: 'lojas_cbd',    path: "as_locat?$filter=lo_parent%20eq%20'PTCBD'",  desc: 'DOPs Bom Dia',                            top: 50  },
+    { key: 'lojas_cbd1',   path: "as_locat?$filter=lo_parent%20eq%20'PTCBD1'", desc: 'Bom Dia Norte (lojas individuais)',       top: 200 },
+    { key: 'lojas_cbd3',   path: "as_locat?$filter=lo_parent%20eq%20'PTCBD3'", desc: 'Bom Dia Centro (lojas individuais)',      top: 200 },
+    { key: 'lojas_cbd5',   path: "as_locat?$filter=lo_parent%20eq%20'PTCBD5'", desc: 'Bom Dia Sul (lojas individuais)',         top: 200 },
   ]
 
   const resultados: Record<string, any> = {}
