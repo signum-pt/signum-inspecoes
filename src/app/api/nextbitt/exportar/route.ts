@@ -62,6 +62,16 @@ export async function POST(req: NextRequest) {
     }
 
     const BASE = getBase()
+    const logs: string[] = []
+    const log = (msg: string) => { console.log('[Nextbitt]', msg); logs.push(msg) }
+
+    log(`Ambiente: ${process.env.NEXTBITT_ENV ?? 'qa (default)'} → ${BASE}`)
+    log(`Visita: ${visita_id}`)
+    log(`Loja: ${visita.lojas?.nome} (lo_id: ${visita.lojas?.nextbitt_lo_id})`)
+    log(`Técnico: ${visita.profiles?.nome}`)
+    log(`Template: ${visita.templates?.nome}`)
+    log(`PDF assinado: ${visita.pdf_assinado_url ? 'sim' : 'não'}`)
+
     const dataVisita = new Date(visita.data_visita + 'T12:00:00').toISOString()
     const descricao = `${visita.templates?.nome ?? 'Inspeção'} — ${visita.lojas?.nome}`
     const observacoes = [
@@ -69,45 +79,49 @@ export async function POST(req: NextRequest) {
       `Técnico: ${visita.profiles?.nome ?? ''}`,
     ].filter(Boolean).join('\n')
 
+    const payload = {
+      xx_datep: dataVisita,
+      lo_id: visita.lojas.nextbitt_lo_id,
+      xx_descrip: descricao.slice(0, 100),
+      dy_id_stat: '01',
+      re_requestedby: visita.profiles?.nome ?? '',
+      xx_obs: observacoes,
+      re_extref: visita_id.slice(0, 30),
+    }
+    log(`Payload wo_request: ${JSON.stringify(payload)}`)
+
     // Criar Pedido de Intervenção
     let pedidoRes: Response
     try {
-      pedidoRes = await fetch(`${BASE}/wo_request`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          xx_datep: dataVisita,
-          lo_id: visita.lojas.nextbitt_lo_id,
-          xx_descrip: descricao.slice(0, 100),
-          dy_id_stat: '01',              // Pendente
-          re_requestedby: visita.profiles?.nome ?? '',
-          xx_obs: observacoes,
-          re_extref: visita_id.slice(0, 30),
-        }),
-      })
+      pedidoRes = await fetch(`${BASE}/wo_request`, { method: 'POST', headers, body: JSON.stringify(payload) })
     } catch (e: any) {
-      return NextResponse.json({ erro: `Erro de rede: ${e?.message ?? 'desconhecido'}` }, { status: 502 })
+      return NextResponse.json({ erro: `Erro de rede: ${e?.message ?? 'desconhecido'}`, logs }, { status: 502 })
     }
+
+    log(`Resposta wo_request: HTTP ${pedidoRes.status}`)
 
     if (!pedidoRes.ok) {
       const msg = await extrairErroNextbitt(pedidoRes, 'Criação do pedido')
-      console.error('[Nextbitt]', msg)
-      return NextResponse.json({ erro: msg }, { status: 502 })
+      log(`ERRO: ${msg}`)
+      return NextResponse.json({ erro: msg, logs }, { status: 502 })
     }
 
     let pedido: any
     try { pedido = await pedidoRes.json() } catch {
-      return NextResponse.json({ erro: 'Pedido criado mas resposta ilegível.' }, { status: 502 })
+      return NextResponse.json({ erro: 'Pedido criado mas resposta ilegível.', logs }, { status: 502 })
     }
     const nextbittId = pedido.re_id ?? pedido.value ?? String(Date.now())
+    log(`Pedido criado: re_id=${nextbittId}, resposta=${JSON.stringify(pedido).slice(0, 200)}`)
 
     // Upload do PDF assinado (se existir)
     let avisoUpload = ''
     if (visita.pdf_assinado_url) {
+      log('A fazer upload do PDF...')
       try {
         const pdfRes = await fetch(visita.pdf_assinado_url)
         if (pdfRes.ok) {
           const pdfBase64 = Buffer.from(await pdfRes.arrayBuffer()).toString('base64')
+          log(`PDF obtido (${Math.round(pdfBase64.length / 1024)}KB base64), a enviar para cf_imalink...`)
           const uploadRes = await fetch(`${BASE}/cf_imalink`, {
             method: 'POST',
             headers,
@@ -122,21 +136,31 @@ export async function POST(req: NextRequest) {
               us_private: false,
             }),
           })
+          log(`Resposta cf_imalink: HTTP ${uploadRes.status}`)
           if (!uploadRes.ok) {
             avisoUpload = await extrairErroNextbitt(uploadRes, 'Upload do PDF')
+            log(`AVISO upload: ${avisoUpload}`)
+          } else {
+            log('PDF anexado com sucesso.')
           }
+        } else {
+          log(`Não foi possível obter o PDF: HTTP ${pdfRes.status}`)
         }
       } catch (e: any) {
         avisoUpload = `PDF não anexado: ${e?.message ?? 'erro de rede'}`
+        log(`ERRO upload: ${avisoUpload}`)
       }
+    } else {
+      log('Sem PDF assinado — a ignorar upload.')
     }
 
     await supabase.from('visitas').update({
       nextbitt_id: String(nextbittId),
       nextbitt_exportado_em: new Date().toISOString(),
     }).eq('id', visita_id)
+    log('Visita actualizada no Supabase com nextbitt_id.')
 
-    return NextResponse.json({ ok: true, nextbitt_id: nextbittId, aviso: avisoUpload || undefined })
+    return NextResponse.json({ ok: true, nextbitt_id: nextbittId, aviso: avisoUpload || undefined, logs })
   } catch (err: any) {
     console.error('[Nextbitt] Erro inesperado:', err?.message)
     return NextResponse.json({ erro: err.message ?? 'Erro desconhecido.' }, { status: 500 })
