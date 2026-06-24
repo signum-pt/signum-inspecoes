@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
               xx_type: 'wo_request',
               us_shtname: `relatorio_${visita_id.slice(0, 20)}.pdf`,
               xx_desc: `PDF Relatório — ${descricao.slice(0, 80)}`,
-              co_id: 'PDF',
+              co_id: 'RELVISIT',
               cf_actiontype: '0',
               cf_base64: pdfBase64,
               us_private: false,
