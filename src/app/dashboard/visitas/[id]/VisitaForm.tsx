@@ -38,7 +38,7 @@ const CAMPOS_LOJA_BOOL = [
   'tem_bateria_condensadores', 'tem_pac', 'tem_upac', 'tem_pcve',
 ]
 const CAMPOS_LOJA_TEXTO = [
-  'cpe', 'tipo_alimentacao', 'tensao', 'potencia_contratada', 'disjuntor_geral',
+  'cpe', 'tipo_alimentacao', 'potencia_contratada', 'disjuntor_geral',
   'pt_kva', 'pt_tipo', 'gerador_kva', 'quadro_us_voltagem', 'quadro_us_uc',
   'ups_kva', 'trafo_isolamento_kva', 'bateria_condensadores_kvar',
   'upac_kva', 'pcve_kva',
