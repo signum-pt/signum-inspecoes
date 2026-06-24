@@ -16,12 +16,24 @@ async function logoParaBase64(origem: string, fallbackFicheiro?: string): Promis
       const mime = res.headers.get('content-type') ?? 'image/png'
       return `data:${mime};base64,${buf.toString('base64')}`
     } else if (fallbackFicheiro) {
-      const caminho = path.join(process.cwd(), 'public', 'logos', fallbackFicheiro)
-      if (!fs.existsSync(caminho)) return ''
-      const buf = fs.readFileSync(caminho)
-      const ext = fallbackFicheiro.split('.').pop()?.toLowerCase() ?? 'png'
-      const mime = ext === 'jpg' ? 'image/jpeg' : `image/${ext}`
-      return `data:${mime};base64,${buf.toString('base64')}`
+      try {
+        const caminho = path.join(process.cwd(), 'public', 'logos', fallbackFicheiro)
+        const buf = fs.readFileSync(caminho)
+        const ext = fallbackFicheiro.split('.').pop()?.toLowerCase() ?? 'png'
+        const mime = ext === 'jpg' ? 'image/jpeg' : `image/${ext}`
+        return `data:${mime};base64,${buf.toString('base64')}`
+      } catch {
+        // ficheiro não encontrado no filesystem — tentar via HTTP público
+        try {
+          const host = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://signum-inspecoes.vercel.app'
+          const res = await fetch(`${host}/logos/${fallbackFicheiro}`)
+          if (!res.ok) return ''
+          const buf = Buffer.from(await res.arrayBuffer())
+          const ext = fallbackFicheiro.split('.').pop()?.toLowerCase() ?? 'png'
+          const mime = ext === 'jpg' ? 'image/jpeg' : `image/${ext}`
+          return `data:${mime};base64,${buf.toString('base64')}`
+        } catch { return '' }
+      }
     }
     return ''
   } catch (e) {
