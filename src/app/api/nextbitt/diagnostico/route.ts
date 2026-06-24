@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
 
   const endpoints = [
     { key: 'pedidos_recentes', path: 'wo_request', desc: 'Pedidos (wo_request)', top: 20 },
-    { key: 'pedido_243718', path: "wo_request(243718)", desc: 'Pedido re_id=243718 (visita exportada)', top: 1 },
+    { key: 'pedido_243718', path: "wo_request?$filter=re_id%20eq%20243718", desc: 'Pedido re_id=243718 (visita exportada)', top: 1 },
     { key: 'situacoes',   path: 'wo_wostatus', desc: 'Situações (dy_id_stat)' },
     { key: 'equipas',     path: 'wo_trade',    desc: 'Equipas (tr_id)' },
     { key: 'sectores',    path: 'as_sector',   desc: 'Sectores (se_id)' },
