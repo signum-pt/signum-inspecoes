@@ -30,11 +30,6 @@ export async function POST(req: NextRequest) {
   if (!t) return NextResponse.json({ erro: 'Token em falta.' }, { status: 400 })
 
   const endpoints = [
-    { key: 'pedidos_top5',    path: 'wo_request',                                           desc: 'Pedidos (top 5, sem filtro)',           top: 5  },
-    { key: 'pedido_str',     path: "wo_request('243724')",                                desc: 'Pedido 243724 (chave string)',          top: 1  },
-    { key: 'pedido_int',     path: 'wo_request(243724)',                                  desc: 'Pedido 243724 (chave inteiro)',         top: 1  },
-    { key: 'pedido_filter',  path: "wo_request?$filter=re_id%20eq%20'243724'",            desc: 'Pedido 243724 (filter string)',         top: 1  },
-    { key: 'pedido_filter2', path: "wo_request?$select=re_id,xx_descrip,lo_id,re_requestedby", desc: 'Pedidos (select campos específicos)', top: 5  },
     { key: 'situacoes',   path: 'wo_wostatus', desc: 'Situações (dy_id_stat)' },
     { key: 'equipas',     path: 'wo_trade',    desc: 'Equipas (tr_id)' },
     { key: 'sectores',    path: 'as_sector',   desc: 'Sectores (se_id)' },
