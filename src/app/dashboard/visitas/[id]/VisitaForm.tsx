@@ -574,6 +574,13 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
             Gerar PDF
           </a>
         )}
+        {estadoVisita === 'assinada' && !visita.pdf_assinado_url && (profile?.role === 'admin' || profile?.id === visita.tecnico_id) && (
+          <button onClick={() => setModalAssinatura(true)}
+            className="flex items-center gap-2 border border-orange-300 text-orange-700 bg-orange-50 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-orange-100 transition-colors">
+            <Upload className="w-4 h-4" />
+            Adicionar PDF assinado
+          </button>
+        )}
         {estadoVisita === 'assinada' && visita.pdf_assinado_url && (
           <a href={visita.pdf_assinado_url} target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-2 border border-green-300 text-green-700 bg-green-50 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors">
@@ -653,7 +660,7 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
 
             <div className="px-6 py-5 space-y-4">
               <p className="text-sm text-gray-600">
-                Anexe o PDF devolvido pelo cliente com a assinatura (opcional mas recomendado).
+                Anexe o PDF devolvido pelo cliente com a assinatura. É obrigatório para exportar para o Nextbitt.
               </p>
 
               <div>
@@ -675,12 +682,12 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
               </div>
 
               <p className="text-xs text-gray-400">
-                Se não tiver o PDF agora, pode marcar como assinada e o documento ficará registado sem anexo.
+                Sem PDF não é possível exportar para o Nextbitt.
               </p>
             </div>
 
             <div className="px-6 py-4 bg-gray-50 rounded-b-2xl flex gap-2">
-              <button onClick={handleAssinar} disabled={aAssinar}
+              <button onClick={handleAssinar} disabled={aAssinar || !pdfAssinadoFile}
                 className="flex-1 text-white py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
                 style={{ backgroundColor: '#D41317' }}>
                 {aAssinar ? 'A processar...' : 'Confirmar assinatura'}
