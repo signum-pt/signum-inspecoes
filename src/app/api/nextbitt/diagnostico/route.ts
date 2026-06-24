@@ -34,7 +34,10 @@ export async function POST(req: NextRequest) {
     { key: 'equipas',     path: 'wo_trade',    desc: 'Equipas (tr_id)' },
     { key: 'sectores',    path: 'as_sector',   desc: 'Sectores (se_id)' },
     { key: 'localizacoes',path: 'as_locat',    desc: 'Todas as localizações (lo_id)', top: 200 },
-    { key: 'lojas',       path: "as_locat?$filter=lo_parent%20eq%20'PT'", desc: 'Grupos de lojas (filhos de PT)', top: 100 },
+    { key: 'lojas_grupos', path: "as_locat?$filter=lo_parent%20eq%20'PT'",    desc: 'Grupos de lojas (filhos de PT)', top: 100 },
+    { key: 'lojas_cnt',   path: "as_locat?$filter=lo_parent%20eq%20'PTCNT'", desc: 'Lojas Continente (lo_id individuais)', top: 200 },
+    { key: 'lojas_mdl',   path: "as_locat?$filter=lo_parent%20eq%20'PTMDL'", desc: 'Lojas Modelo (lo_id individuais)', top: 200 },
+    { key: 'lojas_cbd',   path: "as_locat?$filter=lo_parent%20eq%20'PTCBD'", desc: 'Lojas Bom Dia (lo_id individuais)', top: 200 },
   ]
 
   const resultados: Record<string, any> = {}
