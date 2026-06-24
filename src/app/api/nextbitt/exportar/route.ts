@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
 
     const payload = {
       xx_datep: dataVisita,
-      lo_id: visita.lojas.nextbitt_lo_id,
+      lo_id: visita.lojas.nextbitt_lo_id.padEnd(20),
       xx_descrip: descricao.slice(0, 100),
       dy_id_stat: '01',
       re_requestedby: visita.profiles?.nome ?? '',
