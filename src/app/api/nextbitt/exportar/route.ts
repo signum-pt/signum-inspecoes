@@ -290,7 +290,7 @@ export async function POST(req: NextRequest) {
             method: 'POST',
             headers,
             body: JSON.stringify({
-              us_prof: String(woId),
+              us_prof: `${woId}-${woWork}`,
               xx_type: 'wo_workord',
               us_shtname: `Relatorio_Visita_${visita.lojas?.nome?.replace(/\s+/g, '_').slice(0, 30)}_${visita.data_visita}.pdf`,
               xx_desc: `Relatório de Visita — ${visita.lojas?.nome} — ${visita.data_visita}`,
