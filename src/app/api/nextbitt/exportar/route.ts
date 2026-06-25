@@ -292,10 +292,10 @@ export async function POST(req: NextRequest) {
             body: JSON.stringify({
               us_prof: String(woId),
               xx_type: 'wo_workord',
-              us_shtname: `relatorio_${visita_id.slice(0, 20)}.pdf`,
-              xx_desc: `PDF Relatório — ${descricao.slice(0, 80)}`,
+              us_shtname: `Relatorio_Visita_${visita.lojas?.nome?.replace(/\s+/g, '_').slice(0, 30)}_${visita.data_visita}.pdf`,
+              xx_desc: `Relatório de Visita — ${visita.lojas?.nome} — ${visita.data_visita}`,
               co_id: 'RELVISIT',
-              cf_actiontype: '0',
+              cf_actiontype: 0,
               cf_base64: pdfBase64,
               us_private: false,
             }),
