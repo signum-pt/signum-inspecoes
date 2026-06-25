@@ -132,6 +132,22 @@ export async function POST(req: NextRequest) {
 
     log(`OT ${woId} fechada com sucesso.`)
 
+    // Verificar estado actual da OT no Nextbitt
+    try {
+      const verificaRes = await fetch(
+        `${BASE}/wo_workord(${woId})?$select=wo_id,xx_sit,wo_dateend,xx_descrip,lo_id`,
+        { headers }
+      )
+      if (verificaRes.ok) {
+        const ot = await verificaRes.json()
+        log(`Verificação OT: wo_id=${ot.wo_id} | situação=${ot.xx_sit} | data fecho=${ot.wo_dateend ?? 'null'} | loja=${ot.lo_id?.trim()}`)
+      } else {
+        log(`Aviso: não foi possível verificar OT (HTTP ${verificaRes.status})`)
+      }
+    } catch (e: any) {
+      log(`Aviso: erro na verificação: ${e?.message}`)
+    }
+
     // 3. Anexar PDF assinado à OT
     let avisoUpload = ''
     if (visita.pdf_assinado_url) {
