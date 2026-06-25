@@ -146,8 +146,8 @@ export async function POST(req: NextRequest) {
         if (ot) {
           woId = ot.wo_id
           woWork = ot.wo_work ?? 1
-          woDescricao = ot.xx_descrip?.trim() ?? ''
-          log(`OT encontrada: wo_id=${woId} wo_work=${woWork} | situação=${ot.xx_sit} | ${woDescricao}`)
+          woDescricao = ot.xx_descrip ?? ''
+          log(`OT encontrada: wo_id=${woId} wo_work=${woWork} | situação=${ot.xx_sit} | ${woDescricao.trim()}`)
         } else {
           log(`Aviso: nenhuma OT Preventiva encontrada para esta loja`)
         }
