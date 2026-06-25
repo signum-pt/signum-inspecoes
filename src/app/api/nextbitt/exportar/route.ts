@@ -163,8 +163,9 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Fechar a OT — chave composta (wo_id, wo_work) obrigatória em OData
+    // xx_dscwork é campo obrigatório mesmo que não visível na UI
     const dataFecho = new Date(visita.data_visita + 'T12:00:00').toISOString()
-    const patchPayload = { xx_sit: '14', wo_dateend: dataFecho, xx_descrip: woDescricao }
+    const patchPayload = { xx_sit: '14', wo_dateend: dataFecho, xx_descrip: woDescricao, xx_dscwork: woDescricao.trim() }
     log(`A fechar OT ${woId} — payload: ${JSON.stringify(patchPayload)}`)
 
     let patchRes: Response
