@@ -34,7 +34,7 @@ const DEPENDENCIAS: Record<string, string> = {
 
 // Campos da loja que podem ser atualizados a partir da visita
 const CAMPOS_LOJA_BOOL = [
-  'tem_pt', 'tem_gerador', 'tem_ups', 'tem_trafo_isolamento',
+  'tem_gerador', 'tem_ups', 'tem_trafo_isolamento',
   'tem_bateria_condensadores', 'tem_pac', 'tem_upac', 'tem_pcve',
 ]
 const CAMPOS_LOJA_TEXTO = [
@@ -887,10 +887,14 @@ function CampoInput({ tc, valor, respostas, secoes, onChange, disabled }: {
       const parentTc = s.template_campos?.find((t: any) => t.campos?.chave === chaveParent)
       if (parentTc) { parentCampoId = parentTc.campo_id; break }
     }
-    // Se o parent existe no template e está respondido como false/não, esconder este campo
-    if (parentCampoId && respostas[parentCampoId] === false) return null
-    // Se o parent existe mas ainda não foi respondido, também esconder (aguardar resposta)
-    if (parentCampoId && respostas[parentCampoId] === undefined) return null
+    // Se o parent existe, esconder sub-campos se: não respondido, false (sim_nao), ou "Sem Aplicação" (escolha_multipla)
+    if (parentCampoId) {
+      const parentVal = respostas[parentCampoId]
+      if (parentVal === undefined || parentVal === null) return null
+      if (parentVal === false) return null
+      const opcaoSelecionada = Array.isArray(parentVal) ? parentVal[0] : parentVal
+      if (opcaoSelecionada === 'Sem Aplicação') return null
+    }
   }
 
   const max = tc.max_caracteres ?? null

@@ -4,6 +4,32 @@ import { createClient } from '@/lib/supabase/server'
 const ODATA_QA   = 'https://sonaemcapitest.nextbitt.net/odata'
 const ODATA_PROD = 'https://sonaemcapi.nextbitt.net/odata'
 
+// Mapeamento: pm_task Nextbitt → { chave do valor OK/NOK, chave das notas }
+const MAPA_VERIFICACOES: Record<string, { valor: string; notas?: string }> = {
+  'Verificação Terras Proteção':               { valor: 'terras_pt' },
+  'Verificação Salas Técnicas':                { valor: 'salas_tecnicas',                   notas: 'observacoes_salas_tecnicas' },
+  'Verificação Posto Transformação':           { valor: 'tem_pt',                           notas: 'observacoes_pt' },
+  'Verificação Gerador':                       { valor: 'tem_gerador_seguranca',             notas: 'observacoes_grupos_geradores' },
+  'Verificação Carport':                       { valor: 'quadro_carport',                   notas: 'observacoes_carport' },
+  'Verificação UPAC':                          { valor: 'quadro_upac',                      notas: 'observacoes_upac' },
+  'Verificação QGBT':                          { valor: 'qgbt_qe',                          notas: 'observacoes_qgbt_qe' },
+  'Verificação UPS Geral':                     { valor: 'ups_geral',                        notas: 'observacoes_ups_geral' },
+  'Verificação UPS Seg':                       { valor: 'ups_seguranca',                    notas: 'observacoes_ups_seguranca' },
+  'Verificação Quadros Elétricos Normal':      { valor: 'quadros_eletricos_normais',        notas: 'observacoes_quadros_eletricos_normais' },
+  'Verificação Quadros Elétricos Emergência/UPS': { valor: 'quadros_eletricos_emergencia_ups', notas: 'observacoes_quadros_eletricos_emergencia_ups' },
+  'Verificação Quadro AVAC':                   { valor: 'quadro_avac',                      notas: 'observacoes_quadro_avac' },
+  'Verificação Quadro frio':                   { valor: 'quadro_frio',                      notas: 'observacoes_quadro_frio' },
+  'Verificação Mobilidade Elétrica':           { valor: 'quadro_mobilidade_eletrica',       notas: 'observacoes_quadro_mobilidade_eletrica' },
+  'Verificação Botoneira Corte Geral':         { valor: 'botoneira_de_corte_geral',         notas: 'observacoes_botoneira_de_corte_geral' },
+  'Verificação Iluminação Normal':             { valor: 'iluminacao_normal',                notas: 'observacoes_iluminacao_normal' },
+  'Verificação Iluminação Emergência':         { valor: 'iluminacao_seguranca',             notas: 'observacoes_iluminacao_seguranca' },
+  'Verificação Proteções Diferenciais':        { valor: 'protecoes_diferenciais',           notas: 'observacoes_protecoes_diferenciais' },
+  'Verificação Tomadas':                       { valor: 'tomadas',                          notas: 'observacoes_tomadas' },
+  'Verificação Caminhos Cabos':                { valor: 'caminho_de_cabos',                 notas: 'observacoes_caminho_de_cabos' },
+  'Verificação Limpeza e Manutenção':          { valor: 'limpeza_e_manutencao',             notas: 'observacoes_limpeza_e_manutencao' },
+  'Verificação Zona. Publico':                 { valor: 'zona_de_publico',                  notas: 'observacoes_zona_de_publico' },
+}
+
 function getBase() {
   return process.env.NEXTBITT_ENV === 'prod' ? ODATA_PROD : ODATA_QA
 }
@@ -56,6 +82,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: 'A loja não tem código Nextbitt (lo_id) configurado.' }, { status: 400 })
     }
 
+    // Recolher todas as chaves necessárias (valores + notas)
+    const todasChaves = new Set<string>()
+    for (const m of Object.values(MAPA_VERIFICACOES)) {
+      todasChaves.add(m.valor)
+      if (m.notas) todasChaves.add(m.notas)
+    }
+
+    // Buscar respostas desta visita para todos os campos de verificação
+    const { data: respostas } = await supabase
+      .from('visita_respostas')
+      .select('valor_opcoes, valor_texto, campos!inner(chave)')
+      .eq('visita_id', visita_id)
+      .in('campos.chave', [...todasChaves])
+
+    // Construir mapa chave → valor
+    const mapaRespostas: Record<string, string> = {}
+    for (const r of respostas ?? []) {
+      const chave = (r.campos as any)?.chave
+      if (!chave) continue
+      if (r.valor_opcoes !== null && r.valor_opcoes !== undefined) {
+        const v = Array.isArray(r.valor_opcoes) ? r.valor_opcoes[0] : r.valor_opcoes
+        if (v) mapaRespostas[chave] = v
+      } else if (r.valor_texto) {
+        mapaRespostas[chave] = r.valor_texto
+      }
+    }
+
     let headers: Record<string, string>
     try { headers = getHeaders() } catch (e: any) {
       return NextResponse.json({ erro: e.message }, { status: 500 })
@@ -71,6 +124,8 @@ export async function POST(req: NextRequest) {
     log(`Técnico: ${visita.profiles?.nome}`)
     log(`Template: ${visita.templates?.nome}`)
     log(`PDF assinado: ${visita.pdf_assinado_url ? 'sim' : 'não'}`)
+    const verificacoesPreenchidas = Object.values(MAPA_VERIFICACOES).filter(m => mapaRespostas[m.valor]).length
+    log(`Verificações preenchidas: ${verificacoesPreenchidas} de ${Object.keys(MAPA_VERIFICACOES).length}`)
 
     const lo_id_padded = visita.lojas.nextbitt_lo_id.padEnd(20)
     const descricao = `${visita.templates?.nome ?? 'Inspeção'} — ${visita.lojas?.nome}`
@@ -78,9 +133,11 @@ export async function POST(req: NextRequest) {
     // 1. Procurar OT Preventiva (MP) da loja
     log(`A procurar OT Preventiva para loja ${lo_id_padded.trim()}...`)
     let woId: number | null = null
+    let woWork: number = 1
+    let woDescricao: string = ''
     try {
       const otRes = await fetch(
-        `${BASE}/wo_workord?$filter=ty_id eq 'MP' and lo_id eq '${lo_id_padded}'&$select=wo_id,lo_id,xx_sit,xx_descrip&$top=1`,
+        `${BASE}/wo_workord?$filter=ty_id eq 'MP' and lo_id eq '${lo_id_padded}'&$select=wo_id,wo_work,lo_id,xx_sit,xx_descrip&$top=1`,
         { headers }
       )
       if (otRes.ok) {
@@ -88,7 +145,9 @@ export async function POST(req: NextRequest) {
         const ot = otData.value?.[0]
         if (ot) {
           woId = ot.wo_id
-          log(`OT encontrada: wo_id=${woId} | situação=${ot.xx_sit} | ${ot.xx_descrip?.trim()}`)
+          woWork = ot.wo_work ?? 1
+          woDescricao = ot.xx_descrip?.trim() ?? ''
+          log(`OT encontrada: wo_id=${woId} wo_work=${woWork} | situação=${ot.xx_sit} | ${woDescricao}`)
         } else {
           log(`Aviso: nenhuma OT Preventiva encontrada para esta loja`)
         }
@@ -103,17 +162,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: 'Não foi encontrada OT Preventiva (MP) para esta loja no Nextbitt.', logs }, { status: 404 })
     }
 
-    // 2. Fechar a OT (PATCH wo_workord)
+    // 2. Fechar a OT — chave composta (wo_id, wo_work) obrigatória em OData
     const dataFecho = new Date(visita.data_visita + 'T12:00:00').toISOString()
-    const patchPayload = {
-      xx_sit: '14',
-      wo_dateend: dataFecho,
-    }
+    const patchPayload = { xx_sit: '14', wo_dateend: dataFecho, xx_descrip: woDescricao }
     log(`A fechar OT ${woId} — payload: ${JSON.stringify(patchPayload)}`)
 
     let patchRes: Response
     try {
-      patchRes = await fetch(`${BASE}/wo_workord(${woId})`, {
+      patchRes = await fetch(`${BASE}/wo_workord(wo_id=${woId},wo_work=${woWork})`, {
         method: 'PATCH',
         headers,
         body: JSON.stringify(patchPayload),
@@ -132,7 +188,7 @@ export async function POST(req: NextRequest) {
 
     log(`OT ${woId} fechada com sucesso.`)
 
-    // Verificar estado actual da OT no Nextbitt
+    // Verificar estado actual da OT
     try {
       const verificaRes = await fetch(
         `${BASE}/wo_workord(${woId})?$select=wo_id,xx_sit,wo_dateend,xx_descrip,lo_id`,
@@ -148,7 +204,79 @@ export async function POST(req: NextRequest) {
       log(`Aviso: erro na verificação: ${e?.message}`)
     }
 
-    // 3. Anexar PDF assinado à OT
+    // 3. Preencher checklist (pm_jobchs) campo a campo
+    if (verificacoesPreenchidas > 0) {
+      log(`A preencher checklist Nextbitt (${verificacoesPreenchidas} campos)...`)
+
+      // Buscar todos os itens do checklist desta OT
+      let checklistItems: Array<{ xx_ident: number; pm_task: string }> = []
+      try {
+        const chkRes = await fetch(
+          `${BASE}/pm_jobchs?$filter=wo_id eq ${woId}&$select=xx_ident,pm_task`,
+          { headers }
+        )
+        if (chkRes.ok) {
+          const chkData = await chkRes.json()
+          checklistItems = chkData.value ?? []
+          log(`Checklist obtido: ${checklistItems.length} itens`)
+        } else {
+          log(`Aviso: não foi possível obter checklist (HTTP ${chkRes.status})`)
+        }
+      } catch (e: any) {
+        log(`Aviso: erro ao obter checklist: ${e?.message}`)
+      }
+
+      // Para cada pm_task, verificar se temos resposta e fazer PATCH
+      let preenchidos = 0
+      let erros = 0
+      const dataRealizacao = new Date(visita.data_visita + 'T12:00:00').toISOString()
+
+      for (const [pmTask, mapa] of Object.entries(MAPA_VERIFICACOES)) {
+        const valor = mapaRespostas[mapa.valor]
+        if (!valor) continue
+
+        const item = checklistItems.find(i => i.pm_task === pmTask)
+        if (!item) {
+          log(`Aviso: pm_task "${pmTask}" não encontrado no checklist da OT`)
+          continue
+        }
+
+        // Nextbitt aceita "OK", "NOK", "Sem Aplicacao" (sem acento)
+        const valorNextbitt = valor === 'Sem Aplicação' ? 'Sem Aplicacao' : valor
+        const notas = mapa.notas ? mapaRespostas[mapa.notas] : undefined
+
+        const patchBody: Record<string, any> = {
+          pm_state_name: valorNextbitt,
+          xx_dt_rec: dataRealizacao,
+        }
+        if (notas) patchBody.pm_obs = notas.slice(0, 400)
+
+        try {
+          const r = await fetch(`${BASE}/pm_jobchs(${item.xx_ident})`, {
+            method: 'PATCH',
+            headers,
+            body: JSON.stringify(patchBody),
+          })
+          if (r.ok) {
+            log(`✓ ${pmTask} → ${valorNextbitt}${notas ? ' (com notas)' : ''}`)
+            preenchidos++
+          } else {
+            const msg = await extrairErroNextbitt(r, pmTask)
+            log(`✗ ${pmTask}: ${msg}`)
+            erros++
+          }
+        } catch (e: any) {
+          log(`✗ ${pmTask}: erro de rede — ${e?.message}`)
+          erros++
+        }
+      }
+
+      log(`Checklist concluído: ${preenchidos} preenchidos, ${erros} erros.`)
+    } else {
+      log(`Nenhuma verificação preenchida — checklist não actualizado.`)
+    }
+
+    // 4. Anexar PDF assinado à OT
     let avisoUpload = ''
     if (visita.pdf_assinado_url) {
       log('A fazer upload do PDF...')
@@ -187,7 +315,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. Guardar wo_id no Supabase
+    // 5. Guardar wo_id no Supabase
     await supabase.from('visitas').update({
       nextbitt_id: String(woId),
       nextbitt_exportado_em: new Date().toISOString(),
