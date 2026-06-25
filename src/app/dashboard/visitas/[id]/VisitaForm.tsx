@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { ArrowLeft, CheckCircle, FileDown, Camera, X, Upload, AlertTriangle, Trash2, PenLine, Send } from 'lucide-react'
+import { ArrowLeft, CheckCircle, FileDown, Camera, X, Upload, AlertTriangle, Trash2, PenLine, Send, Search, Paperclip, XCircle } from 'lucide-react'
 import Link from 'next/link'
 import type { TipoCampo } from '@/lib/types'
 
@@ -102,6 +102,10 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
   const [logsNextbitt, setLogsNextbitt] = useState<string[]>([])
   const [nextbittExportado, setNextbittExportado] = useState(!!visita.nextbitt_id)
   const [nextbittExportadoEm, setNextbittExportadoEm] = useState<string | null>(visita.nextbitt_exportado_em ?? null)
+  const [modalConsultar, setModalConsultar] = useState(false)
+  const [aConsultar, setAConsultar] = useState(false)
+  const [dadosNextbitt, setDadosNextbitt] = useState<any>(null)
+  const [erroConsultar, setErroConsultar] = useState('')
 
   const hoje = new Date().toISOString().split('T')[0]
   const dataPassou = visita.data_visita < hoje && estadoVisita === 'agendada'
@@ -299,6 +303,22 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
     setModalReagendar(false)
     setAReagendar(false)
     router.refresh()
+  }
+
+  async function handleConsultarNextbitt() {
+    setErroConsultar('')
+    setDadosNextbitt(null)
+    setAConsultar(true)
+    setModalConsultar(true)
+    try {
+      const res = await fetch(`/api/nextbitt/consultar?visita_id=${visita.id}`)
+      const json = await res.json()
+      if (!res.ok) { setErroConsultar(json.erro ?? 'Erro ao consultar.'); setAConsultar(false); return }
+      setDadosNextbitt(json)
+    } catch {
+      setErroConsultar('Erro de rede. Não foi possível contactar o servidor.')
+    }
+    setAConsultar(false)
   }
 
   async function handleExportarNextbitt() {
@@ -582,14 +602,23 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
         )}
         {estadoVisita === 'assinada' && visita.pdf_assinado_url && visita.lojas?.nextbitt_lo_id && (
           nextbittExportado ? (
-            <div className="flex items-center gap-2 border border-blue-200 text-blue-600 bg-blue-50 px-5 py-2.5 rounded-lg text-sm font-medium">
-              <Send className="w-4 h-4" />
-              Exportado para Nextbitt
-              {nextbittExportadoEm && (
-                <span className="text-xs text-blue-400 ml-1">
-                  {new Date(nextbittExportadoEm).toLocaleDateString('pt-PT')}
-                </span>
-              )}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 border border-blue-200 text-blue-600 bg-blue-50 px-5 py-2.5 rounded-lg text-sm font-medium">
+                <Send className="w-4 h-4" />
+                Exportado para Nextbitt
+                {nextbittExportadoEm && (
+                  <span className="text-xs text-blue-400 ml-1">
+                    {new Date(nextbittExportadoEm).toLocaleDateString('pt-PT')}
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={handleConsultarNextbitt}
+                className="flex items-center gap-2 border border-gray-200 text-gray-600 bg-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+              >
+                <CheckCircle className="w-4 h-4" />
+                Verificar dados
+              </button>
             </div>
           ) : (
             <button
@@ -808,6 +837,112 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
                   </button>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal consultar Nextbitt */}
+      {modalConsultar && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+            <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                  <Search className="w-4 h-4 text-gray-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">Dados no Nextbitt</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">OT {visita.nextbitt_id} — estado actual</p>
+                </div>
+              </div>
+              <button onClick={() => setModalConsultar(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 overflow-y-auto flex-1 space-y-4">
+              {aConsultar && (
+                <div className="flex items-center justify-center py-8 text-gray-400 text-sm gap-2">
+                  <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                  A consultar Nextbitt...
+                </div>
+              )}
+              {erroConsultar && (
+                <div className="flex items-start gap-3 bg-red-50 border border-red-100 rounded-lg px-4 py-3">
+                  <XCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-700">{erroConsultar}</p>
+                </div>
+              )}
+              {dadosNextbitt && (
+                <>
+                  {/* Cabeçalho OT */}
+                  <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500">Situação</span>
+                      <span className={`font-semibold px-2 py-0.5 rounded-full text-xs ${dadosNextbitt.ot.situacao_codigo === '14' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                        {dadosNextbitt.ot.situacao_descricao}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500">Loja</span>
+                      <span className="font-medium text-gray-800">{dadosNextbitt.ot.loja}</span>
+                    </div>
+                    {dadosNextbitt.ot.data_fecho && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500">Data de fecho</span>
+                        <span className="font-medium text-gray-800">
+                          {new Date(dadosNextbitt.ot.data_fecho).toLocaleDateString('pt-PT')}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500">Anexos</span>
+                      <span className={`flex items-center gap-1 font-medium ${dadosNextbitt.ot.anexos > 0 ? 'text-green-700' : 'text-red-600'}`}>
+                        <Paperclip className="w-3.5 h-3.5" />
+                        {dadosNextbitt.ot.anexos} {dadosNextbitt.ot.anexos === 1 ? 'ficheiro' : 'ficheiros'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Checklist */}
+                  {dadosNextbitt.checklist.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                        Checklist — {dadosNextbitt.checklist.filter((c: any) => c.estado).length}/{dadosNextbitt.checklist.length} preenchidos
+                      </p>
+                      <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
+                        {dadosNextbitt.checklist.map((item: any, i: number) => (
+                          <div key={i} className="px-4 py-2.5 flex items-start gap-3 bg-white hover:bg-gray-50 transition-colors">
+                            <span className={`mt-0.5 text-xs font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${
+                              item.estado === 'OK' ? 'bg-green-100 text-green-700' :
+                              item.estado === 'NOK' ? 'bg-red-100 text-red-700' :
+                              item.estado === 'Sem Aplicacao' ? 'bg-gray-100 text-gray-500' :
+                              'bg-yellow-100 text-yellow-700'
+                            }`}>
+                              {item.estado ?? '—'}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs text-gray-700 font-medium leading-tight">{item.tarefa}</p>
+                              {item.notas && <p className="text-xs text-gray-400 mt-0.5 truncate">{item.notas}</p>}
+                            </div>
+                            {item.data && <span className="text-xs text-gray-400 flex-shrink-0">{item.data}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 rounded-b-2xl">
+              <button
+                onClick={() => setModalConsultar(false)}
+                className="w-full py-2 rounded-lg text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-100 transition-colors"
+              >
+                Fechar
+              </button>
             </div>
           </div>
         </div>
