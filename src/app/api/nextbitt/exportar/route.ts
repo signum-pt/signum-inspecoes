@@ -8,10 +8,10 @@ const ODATA_PROD = 'https://sonaemcapi.nextbitt.net/odata'
 const MAPA_VERIFICACOES: Record<string, { valor: string; notas?: string }> = {
   'Verificação Terras Proteção':               { valor: 'terras_pt' },
   'Verificação Salas Técnicas':                { valor: 'salas_tecnicas',                   notas: 'observacoes_salas_tecnicas' },
-  'Verificação Posto Transformação':           { valor: 'tem_pt',                           notas: 'observacoes_pt' },
-  'Verificação Gerador':                       { valor: 'tem_gerador_seguranca',             notas: 'observacoes_grupos_geradores' },
+  'Verificação Posto Transformação':           { valor: 'estado_posto_transformacao',        notas: 'observacoes_pt' },
+  'Verificação Gerador':                       { valor: 'estado_geradores',                  notas: 'observacoes_grupos_geradores' },
   'Verificação Carport':                       { valor: 'quadro_carport',                   notas: 'observacoes_carport' },
-  'Verificação UPAC':                          { valor: 'quadro_upac',                      notas: 'observacoes_upac' },
+  'Verificação UPAC':                          { valor: 'estado_upac',                      notas: 'observacoes_upac' },
   'Verificação QGBT':                          { valor: 'qgbt_qe',                          notas: 'observacoes_qgbt_qe' },
   'Verificação UPS Geral':                     { valor: 'ups_geral',                        notas: 'observacoes_ups_geral' },
   'Verificação UPS Seg':                       { valor: 'ups_seguranca',                    notas: 'observacoes_ups_seguranca' },
