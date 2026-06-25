@@ -72,68 +72,67 @@ export async function POST(req: NextRequest) {
     log(`Template: ${visita.templates?.nome}`)
     log(`PDF assinado: ${visita.pdf_assinado_url ? 'sim' : 'não'}`)
 
-    const dataVisita = new Date(visita.data_visita + 'T12:00:00').toISOString()
-    const descricao = `${visita.templates?.nome ?? 'Inspeção'} — ${visita.lojas?.nome}`
-    const observacoes = [
-      visita.observacoes_gerais ? `Obs: ${visita.observacoes_gerais}` : null,
-      `Técnico: ${visita.profiles?.nome ?? ''}`,
-    ].filter(Boolean).join('\n')
-
-    // Obter as_code da Instalação Elétrica da loja
     const lo_id_padded = visita.lojas.nextbitt_lo_id.padEnd(20)
-    let asCode: string | undefined
+    const descricao = `${visita.templates?.nome ?? 'Inspeção'} — ${visita.lojas?.nome}`
+
+    // 1. Procurar OT Preventiva (MP) da loja
+    log(`A procurar OT Preventiva para loja ${lo_id_padded.trim()}...`)
+    let woId: number | null = null
     try {
-      const asRes = await fetch(
-        `${BASE}/as_assets?$filter=lo_id eq '${encodeURIComponent(lo_id_padded)}' and ag_id eq 'INE            ' and ag_subid eq 'TE             '&$select=as_code&$top=1`,
+      const otRes = await fetch(
+        `${BASE}/wo_workord?$filter=ty_id eq 'MP' and lo_id eq '${lo_id_padded}'&$select=wo_id,lo_id,xx_sit,xx_descrip&$top=1`,
         { headers }
       )
-      if (asRes.ok) {
-        const asData = await asRes.json()
-        asCode = asData.value?.[0]?.as_code?.trim()
-        log(`Ativo Instalação Elétrica: ${asCode ?? 'não encontrado'}`)
+      if (otRes.ok) {
+        const otData = await otRes.json()
+        const ot = otData.value?.[0]
+        if (ot) {
+          woId = ot.wo_id
+          log(`OT encontrada: wo_id=${woId} | situação=${ot.xx_sit} | ${ot.xx_descrip?.trim()}`)
+        } else {
+          log(`Aviso: nenhuma OT Preventiva encontrada para esta loja`)
+        }
       } else {
-        log(`Aviso: não foi possível obter as_code (HTTP ${asRes.status})`)
+        log(`Aviso: erro ao procurar OT (HTTP ${otRes.status})`)
       }
     } catch (e: any) {
-      log(`Aviso: erro ao obter as_code: ${e?.message}`)
+      log(`Aviso: erro ao procurar OT: ${e?.message}`)
     }
 
-    const payload: Record<string, any> = {
-      xx_datep: dataVisita,
-      lo_id: lo_id_padded,
-      xx_descrip: descricao.slice(0, 100),
-      dy_id_stat: '01',
-      re_requestedby: visita.profiles?.nome ?? '',
-      xx_obs: observacoes,
-      re_extref: visita_id.slice(0, 30),
+    if (!woId) {
+      return NextResponse.json({ erro: 'Não foi encontrada OT Preventiva (MP) para esta loja no Nextbitt.', logs }, { status: 404 })
     }
-    if (asCode) payload.as_code = asCode
-    log(`Payload wo_request: ${JSON.stringify(payload)}`)
 
-    // Criar Pedido de Intervenção
-    let pedidoRes: Response
+    // 2. Fechar a OT (PATCH wo_workord)
+    const dataFecho = new Date(visita.data_visita + 'T12:00:00').toISOString()
+    const patchPayload = {
+      xx_sit: '14',
+      wo_dateend: dataFecho,
+    }
+    log(`A fechar OT ${woId} — payload: ${JSON.stringify(patchPayload)}`)
+
+    let patchRes: Response
     try {
-      pedidoRes = await fetch(`${BASE}/wo_request`, { method: 'POST', headers, body: JSON.stringify(payload) })
+      patchRes = await fetch(`${BASE}/wo_workord(${woId})`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(patchPayload),
+      })
     } catch (e: any) {
-      return NextResponse.json({ erro: `Erro de rede: ${e?.message ?? 'desconhecido'}`, logs }, { status: 502 })
+      return NextResponse.json({ erro: `Erro de rede ao fechar OT: ${e?.message}`, logs }, { status: 502 })
     }
 
-    log(`Resposta wo_request: HTTP ${pedidoRes.status}`)
+    log(`Resposta fecho OT: HTTP ${patchRes.status}`)
 
-    if (!pedidoRes.ok) {
-      const msg = await extrairErroNextbitt(pedidoRes, 'Criação do pedido')
+    if (!patchRes.ok) {
+      const msg = await extrairErroNextbitt(patchRes, 'Fecho da OT')
       log(`ERRO: ${msg}`)
       return NextResponse.json({ erro: msg, logs }, { status: 502 })
     }
 
-    let pedido: any
-    try { pedido = await pedidoRes.json() } catch {
-      return NextResponse.json({ erro: 'Pedido criado mas resposta ilegível.', logs }, { status: 502 })
-    }
-    const nextbittId = pedido.re_id ?? pedido.value ?? String(Date.now())
-    log(`Pedido criado: re_id=${nextbittId}, resposta=${JSON.stringify(pedido).slice(0, 200)}`)
+    log(`OT ${woId} fechada com sucesso.`)
 
-    // Upload do PDF assinado (se existir)
+    // 3. Anexar PDF assinado à OT
     let avisoUpload = ''
     if (visita.pdf_assinado_url) {
       log('A fazer upload do PDF...')
@@ -146,8 +145,8 @@ export async function POST(req: NextRequest) {
             method: 'POST',
             headers,
             body: JSON.stringify({
-              us_prof: String(nextbittId),
-              xx_type: 'wo_request',
+              us_prof: String(woId),
+              xx_type: 'wo_workord',
               us_shtname: `relatorio_${visita_id.slice(0, 20)}.pdf`,
               xx_desc: `PDF Relatório — ${descricao.slice(0, 80)}`,
               co_id: 'RELVISIT',
@@ -170,17 +169,16 @@ export async function POST(req: NextRequest) {
         avisoUpload = `PDF não anexado: ${e?.message ?? 'erro de rede'}`
         log(`ERRO upload: ${avisoUpload}`)
       }
-    } else {
-      log('Sem PDF assinado — a ignorar upload.')
     }
 
+    // 4. Guardar wo_id no Supabase
     await supabase.from('visitas').update({
-      nextbitt_id: String(nextbittId),
+      nextbitt_id: String(woId),
       nextbitt_exportado_em: new Date().toISOString(),
     }).eq('id', visita_id)
-    log('Visita actualizada no Supabase com nextbitt_id.')
+    log('Visita actualizada no Supabase com nextbitt_id (wo_id).')
 
-    return NextResponse.json({ ok: true, nextbitt_id: nextbittId, aviso: avisoUpload || undefined, logs })
+    return NextResponse.json({ ok: true, nextbitt_id: woId, aviso: avisoUpload || undefined, logs })
   } catch (err: any) {
     console.error('[Nextbitt] Erro inesperado:', err?.message)
     return NextResponse.json({ erro: err.message ?? 'Erro desconhecido.' }, { status: 500 })
