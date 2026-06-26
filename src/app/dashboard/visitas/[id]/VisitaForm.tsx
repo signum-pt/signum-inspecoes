@@ -1052,7 +1052,6 @@ function CampoInput({ tc, valor, respostas, secoes, onChange, disabled }: {
         {campo.unidade && <span className="text-gray-400 font-normal ml-1">({campo.unidade})</span>}
         {tc.obrigatorio && <span className="text-red-500 ml-1">*</span>}
       </label>
-      {campo.descricao && <p className="text-xs text-gray-400 mb-1.5">{campo.descricao}</p>}
 
       {campo.tipo === 'sim_nao' && (
         <div className="flex gap-3">
