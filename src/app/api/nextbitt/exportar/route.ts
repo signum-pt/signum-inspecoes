@@ -126,6 +126,8 @@ export async function POST(req: NextRequest) {
     log(`PDF assinado: ${visita.pdf_assinado_url ? 'sim' : 'não'}`)
     const verificacoesPreenchidas = Object.values(MAPA_VERIFICACOES).filter(m => mapaRespostas[m.valor]).length
     log(`Verificações preenchidas: ${verificacoesPreenchidas} de ${Object.keys(MAPA_VERIFICACOES).length}`)
+    const notasPreenchidas = Object.values(MAPA_VERIFICACOES).filter(m => m.notas && mapaRespostas[m.notas]).length
+    log(`Notas preenchidas: ${notasPreenchidas} de ${Object.keys(MAPA_VERIFICACOES).length}`)
 
     // Lookup lb_emp_id do técnico pelo username Nextbitt
     let tecnicoEmpId: number | null = null
@@ -300,7 +302,10 @@ export async function POST(req: NextRequest) {
           pm_state_name: valorNextbitt,
           xx_dt_rec: dataRealizacao,
         }
-        if (notas) patchBody.pm_obs = notas.slice(0, 400)
+        if (notas) {
+          patchBody.pm_obs = notas.slice(0, 400)
+          patchBody.xx_rela = notas.slice(0, 400)
+        }
         if (tecnicoEmpId) patchBody.xx_respexc = tecnicoEmpId
 
         try {
