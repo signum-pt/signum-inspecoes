@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { ArrowLeft, CheckCircle, FileDown, Camera, X, Upload, AlertTriangle, Trash2, PenLine, Send, Search, Paperclip, XCircle } from 'lucide-react'
+import { ArrowLeft, CheckCircle, FileDown, Camera, X, Upload, AlertTriangle, Trash2, PenLine, Send, Search, Paperclip, XCircle, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import type { TipoCampo } from '@/lib/types'
 
@@ -107,6 +107,11 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
   const [nextbittExportadoEm, setNextbittExportadoEm] = useState<string | null>(visita.nextbitt_exportado_em ?? null)
   const [modalConsultar, setModalConsultar] = useState(false)
   const [aConsultar, setAConsultar] = useState(false)
+  const [secoesColapsadas, setSecoesColapsadas] = useState<Record<string, boolean>>({})
+
+  function toggleSecao(id: string) {
+    setSecoesColapsadas(prev => ({ ...prev, [id]: !prev[id] }))
+  }
   const [dadosNextbitt, setDadosNextbitt] = useState<any>(null)
   const [erroConsultar, setErroConsultar] = useState('')
 
@@ -515,11 +520,19 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
 
       {/* Secções e campos */}
       <div className="space-y-6 mb-6">
-        {secoes.map((secao: any) => (
+        {secoes.map((secao: any) => {
+          const colapsada = !!secoesColapsadas[secao.id]
+          return (
           <div key={secao.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="px-4 lg:px-5 py-3.5 lg:py-3 bg-gray-50 border-b border-gray-100">
+            <button
+              type="button"
+              onClick={() => toggleSecao(secao.id)}
+              className="w-full flex items-center justify-between px-4 lg:px-5 py-3.5 lg:py-3 bg-gray-50 border-b border-gray-100 hover:bg-gray-100 transition-colors text-left"
+            >
               <h2 className="text-sm font-semibold text-gray-900">{secao.titulo}</h2>
-            </div>
+              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ${colapsada ? '-rotate-90' : ''}`} />
+            </button>
+            {!colapsada && (
             <div className="p-4 lg:p-5 space-y-6 lg:space-y-5">
               {[...(secao.template_campos ?? [])]
                 .sort((a: any, b: any) => a.ordem - b.ordem)
@@ -532,8 +545,10 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
                     disabled={!podeEditar} />
                 ))}
             </div>
+            )}
           </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Fotos */}

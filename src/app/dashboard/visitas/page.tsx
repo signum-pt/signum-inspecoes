@@ -34,7 +34,7 @@ export default async function VisitasPage({
   // Construir query base
   let query = supabase
     .from('visitas')
-    .select('id, data_visita, estado, loja_id, lojas(nome, distrito), profiles(nome, id), templates(nome)')
+    .select('id, data_visita, estado, visita_extra, loja_id, lojas(nome, distrito), profiles(nome, id), templates(nome)')
     .order('data_visita', { ascending: false })
 
   // Filtro: estado
@@ -43,7 +43,17 @@ export default async function VisitasPage({
   // Filtro: técnico
   if (params.tecnico_id) query = query.eq('tecnico_id', params.tecnico_id)
 
-  // Filtro: intervalo de datas
+  // Filtro: tipo (semestral / extra)
+  if (params.tipo === 'semestral') query = query.eq('visita_extra', false)
+  else if (params.tipo === 'extra') query = query.eq('visita_extra', true)
+
+  // Filtro: ano (server-side) — semestre sem ano aplica-se client-side abaixo
+  const ano = parseInt(params.ano ?? '') || null
+  if (ano) {
+    query = query.gte('data_visita', `${ano}-01-01`).lte('data_visita', `${ano}-12-31`)
+  }
+
+  // Filtro: intervalo de datas manual
   if (params.data_de) query = query.gte('data_visita', params.data_de)
   if (params.data_ate) query = query.lte('data_visita', params.data_ate)
 
@@ -85,9 +95,16 @@ export default async function VisitasPage({
   // Filtros client-side
   const q = params.q?.toLowerCase() ?? ''
   const distrito = params.distrito?.toLowerCase() ?? ''
+  const semestre = params.semestre ?? ''
   let visitasFiltradas = visitas ?? []
   if (q) visitasFiltradas = visitasFiltradas.filter((v: any) => v.lojas?.nome?.toLowerCase().includes(q))
   if (distrito) visitasFiltradas = visitasFiltradas.filter((v: any) => v.lojas?.distrito?.toLowerCase() === distrito)
+  if (semestre) {
+    visitasFiltradas = visitasFiltradas.filter((v: any) => {
+      const mes = new Date(v.data_visita + 'T12:00:00').getMonth() + 1
+      return semestre === 's1' ? mes <= 6 : mes >= 7
+    })
+  }
 
   return (
     <PageLayout tecnicos={tecnicos ?? []} visitas={visitasFiltradas} params={params} />
@@ -148,10 +165,15 @@ function PageLayout({ tecnicos, visitas, params }: {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full inline-flex items-center gap-1 ${estadoCor[corKey] ?? 'bg-gray-100 text-gray-600'}`}>
-                      {atrasada && <AlertTriangle className="w-3 h-3" />}
-                      {atrasada ? 'Em atraso' : (estadoLabel[v.estado] ?? v.estado)}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full inline-flex items-center gap-1 ${estadoCor[corKey] ?? 'bg-gray-100 text-gray-600'}`}>
+                        {atrasada && <AlertTriangle className="w-3 h-3" />}
+                        {atrasada ? 'Em atraso' : (estadoLabel[v.estado] ?? v.estado)}
+                      </span>
+                      {v.visita_extra && (
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">Extra</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <Link href={`/dashboard/visitas/${v.id}`} className="text-sm text-[#D41317] hover:text-[#A50E11] font-medium">

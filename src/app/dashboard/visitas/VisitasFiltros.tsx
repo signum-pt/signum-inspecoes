@@ -13,6 +13,18 @@ const ESTADOS = [
   { value: 'assinada', label: 'Assinada' },
 ]
 
+const SEMESTRES = [
+  { value: '', label: 'Qualquer semestre' },
+  { value: 's1', label: '1º Semestre (Jan–Jun)' },
+  { value: 's2', label: '2º Semestre (Jul–Dez)' },
+]
+
+const TIPOS = [
+  { value: '', label: 'Semestral e extra' },
+  { value: 'semestral', label: 'Apenas semestrais' },
+  { value: 'extra', label: 'Apenas extras' },
+]
+
 const CAMPOS_FILTRO = [
   { chave: 'tem_pt', label: 'Tem PT', tipo: 'bool' },
   { chave: 'tem_gerador', label: 'Tem Gerador', tipo: 'bool' },
@@ -27,6 +39,16 @@ const CAMPOS_FILTRO = [
   { chave: 'pt_tipo', label: 'PT — Tipo', tipo: 'texto' },
 ]
 
+// Gera lista de anos: ano actual e 2 anteriores
+const anoAtual = new Date().getFullYear()
+const ANOS = [
+  { value: '', label: 'Qualquer ano' },
+  ...Array.from({ length: 3 }, (_, i) => {
+    const a = anoAtual - i
+    return { value: String(a), label: String(a) }
+  }),
+]
+
 interface Props {
   tecnicos: { id: string; nome: string }[]
   totalResultados: number
@@ -36,7 +58,7 @@ interface Props {
 export default function VisitasFiltros({ tecnicos, totalResultados, params }: Props) {
   const router = useRouter()
   const [avancado, setAvancado] = useState(
-    !!(params.campo || params.data_de || params.data_ate || params.tecnico_id)
+    !!(params.campo || params.data_de || params.data_ate || params.tecnico_id || params.semestre || params.ano || params.tipo)
   )
   const [campoCh, setCampoCh] = useState(params.campo ?? '')
   const [campoValor, setCampoValor] = useState(params.campo_valor ?? '')
@@ -96,6 +118,32 @@ export default function VisitasFiltros({ tecnicos, totalResultados, params }: Pr
       {/* Filtros avançados */}
       {avancado && (
         <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+
+          {/* Tipo de visita */}
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Tipo de visita</label>
+            <select name="tipo" defaultValue={params.tipo ?? ''} className={`${inputCls} w-full`}>
+              {TIPOS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
+          </div>
+
+          {/* Ano */}
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Ano</label>
+            <select name="ano" defaultValue={params.ano ?? ''} className={`${inputCls} w-full`}>
+              {ANOS.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
+            </select>
+          </div>
+
+          {/* Semestre */}
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Semestre</label>
+            <select name="semestre" defaultValue={params.semestre ?? ''} className={`${inputCls} w-full`}>
+              {SEMESTRES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+            </select>
+          </div>
+
+          {/* Técnico */}
           <div>
             <label className="block text-xs text-gray-500 mb-1">Técnico</label>
             <select name="tecnico_id" defaultValue={params.tecnico_id ?? ''} className={`${inputCls} w-full`}>
@@ -104,6 +152,7 @@ export default function VisitasFiltros({ tecnicos, totalResultados, params }: Pr
             </select>
           </div>
 
+          {/* Datas manuais */}
           <div>
             <label className="block text-xs text-gray-500 mb-1">Data de</label>
             <input type="date" name="data_de" defaultValue={params.data_de ?? ''} className={`${inputCls} w-full`} />
@@ -114,6 +163,7 @@ export default function VisitasFiltros({ tecnicos, totalResultados, params }: Pr
             <input type="date" name="data_ate" defaultValue={params.data_ate ?? ''} className={`${inputCls} w-full`} />
           </div>
 
+          {/* Campo da instalação */}
           <div>
             <label className="block text-xs text-gray-500 mb-1">Campo da instalação</label>
             <select
