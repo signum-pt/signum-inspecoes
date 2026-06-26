@@ -74,6 +74,14 @@ export async function GET(req: NextRequest) {
     }
 
     // 3. Checklist completo com recurso
+    // Debug: buscar todos os campos do primeiro item para descobrir o campo "Notas"
+    const chkDebugRes = await fetch(
+      `${BASE}/pm_jobchs?$filter=wo_id eq ${woId}&$top=1`,
+      { headers }
+    )
+    const chkDebugBody = chkDebugRes.ok ? await chkDebugRes.json() : null
+    const primeiroItem = chkDebugBody?.value?.[0] ?? null
+
     const chkRes = await fetch(
       `${BASE}/pm_jobchs?$filter=wo_id eq ${woId}&$select=pm_task,pm_state_name,pm_obs,xx_dt_rec,xx_respexc&$orderby=xx_seq`,
       { headers }
@@ -86,6 +94,7 @@ export async function GET(req: NextRequest) {
     const vazios = checklist.filter((c: any) => !c.pm_state_name).length
 
     return NextResponse.json({
+      _debug_primeiro_item: primeiroItem,
       ot: {
         wo_id: ot.wo_id,
         wo_work: ot.wo_work,

@@ -1077,6 +1077,16 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
                     </div>
                   )}
 
+                  {/* Debug: campos do primeiro item pm_jobchs */}
+                  {dadosNextbitt._debug_primeiro_item && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3 text-xs font-mono text-yellow-900 space-y-0.5 max-h-48 overflow-y-auto">
+                      <p className="font-bold mb-1">Campos do 1º item (pm_jobchs):</p>
+                      {Object.entries(dadosNextbitt._debug_primeiro_item).map(([k, v]: any) => (
+                        <p key={k}><span className="text-yellow-600">{k}:</span> {v === null ? 'null' : String(v)}</p>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Resumo checklist */}
                   {dadosNextbitt.resumo_checklist && (
                     <div className="grid grid-cols-4 gap-2 text-center">
