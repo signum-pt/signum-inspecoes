@@ -1077,9 +1077,15 @@ function CampoInput({ tc, valor, respostas, secoes, onChange, disabled }: {
 
       {campo.tipo === 'texto' && (
         <div>
-          <input type="text" value={textoActual} onChange={e => onChange(e.target.value)}
-            disabled={disabled} placeholder={tc.placeholder || ''}
-            maxLength={max ?? undefined} className={base} />
+          {(max ?? 0) >= 100
+            ? <textarea value={textoActual} onChange={e => onChange(e.target.value)}
+                disabled={disabled} placeholder={tc.placeholder || ''}
+                maxLength={max ?? undefined} rows={5}
+                className={`${base} resize-none min-h-[100px]`} />
+            : <input type="text" value={textoActual} onChange={e => onChange(e.target.value)}
+                disabled={disabled} placeholder={tc.placeholder || ''}
+                maxLength={max ?? undefined} className={base} />
+          }
           {max && <p className="text-xs text-right mt-1 text-gray-400">{textoActual.length}/{max}</p>}
         </div>
       )}
