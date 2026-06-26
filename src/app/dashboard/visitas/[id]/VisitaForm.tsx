@@ -1113,8 +1113,7 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
                             </span>
                             <div className="min-w-0 flex-1">
                               <p className="text-xs text-gray-700 font-medium leading-tight">{item.tarefa}</p>
-                              {item.notas && <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{item.notas}</p>}
-                              {item.recurso && <p className="text-xs text-blue-400 mt-0.5">Recurso: {item.recurso}</p>}
+                              {item.notas && <p className="text-xs text-gray-400 mt-0.5 leading-relaxed"><span className="text-gray-300">Notas:</span> {item.notas}</p>}
                             </div>
                             {item.data && <span className="text-xs text-gray-400 flex-shrink-0">{item.data}</span>}
                           </div>
