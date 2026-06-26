@@ -372,12 +372,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 5. Guardar wo_id no Supabase
+    // 5. Guardar wo_id e wo_work no Supabase
     await supabase.from('visitas').update({
       nextbitt_id: String(woId),
+      nextbitt_wo_work: woWork,
       nextbitt_exportado_em: new Date().toISOString(),
     }).eq('id', visita_id)
-    log('Visita actualizada no Supabase com nextbitt_id (wo_id).')
+    log('Visita actualizada no Supabase com nextbitt_id e wo_work.')
 
     return NextResponse.json({ ok: true, nextbitt_id: woId, aviso: avisoUpload || undefined, logs })
   } catch (err: any) {

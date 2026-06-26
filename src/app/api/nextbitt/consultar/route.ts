@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
 
     const { data: visita } = await supabase
       .from('visitas')
-      .select('nextbitt_id, nextbitt_exportado_em, lojas(nome, nextbitt_lo_id), data_visita')
+      .select('nextbitt_id, nextbitt_wo_work, nextbitt_exportado_em, lojas(nome, nextbitt_lo_id), data_visita')
       .eq('id', visita_id)
       .single()
 
@@ -41,6 +41,7 @@ export async function GET(req: NextRequest) {
     if (!visita.nextbitt_id) return NextResponse.json({ erro: 'Esta visita ainda não foi exportada para o Nextbitt.' }, { status: 400 })
 
     const woId = visita.nextbitt_id
+    const woWork = visita.nextbitt_wo_work ?? 1
     let headers: Record<string, string>
     try { headers = getHeaders() } catch (e: any) {
       return NextResponse.json({ erro: e.message }, { status: 500 })
@@ -74,7 +75,7 @@ export async function GET(req: NextRequest) {
 
     // 3. Checklist completo com recurso
     const chkRes = await fetch(
-      `${BASE}/pm_jobchs?$filter=wo_id eq ${woId}&$select=pm_task,pm_state_name,pm_obs,xx_rela,xx_dt_rec,xx_respexc&$orderby=xx_seq`,
+      `${BASE}/pm_jobchs?$filter=wo_id eq ${woId} and wo_work eq ${woWork}&$select=pm_task,pm_state_name,pm_obs,xx_rela,xx_dt_rec,xx_respexc&$orderby=xx_seq`,
       { headers }
     )
     const checklist = chkRes.ok ? (await chkRes.json()).value ?? [] : []
