@@ -72,6 +72,7 @@ export default async function CalendarioPage({
       </div>
 
       <CalendarioGrid
+        key={`${ano}-${mes}`}
         ano={ano}
         mes={mes}
         celulas={celulas}
