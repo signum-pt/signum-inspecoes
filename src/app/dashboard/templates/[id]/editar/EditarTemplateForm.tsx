@@ -314,7 +314,7 @@ export default function EditarTemplateForm({ template, secoesIniciais, todosCamp
   }
 
   async function adicionarSeparador(secaoId: string, nome: string) {
-    const { data: sepCampo } = await supabase.from('campos').select('*').eq('chave', 'separador').single()
+    const { data: sepCampo } = await createClient().from('campos').select('*').eq('chave', 'separador').single()
     if (!sepCampo) return
     const campo: Campo = { ...sepCampo, nome: nome || '—' }
     setSecoes(s => s.map(x => x.id !== secaoId ? x : {
