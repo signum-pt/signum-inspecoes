@@ -966,6 +966,12 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
                         {dadosNextbitt.ot.anexos} {dadosNextbitt.ot.anexos === 1 ? 'ficheiro' : 'ficheiros'}
                       </span>
                     </div>
+                    {dadosNextbitt.ot.observacoes && (
+                      <div className="pt-1">
+                        <span className="text-gray-500 text-xs block mb-1">Observações finais</span>
+                        <p className="text-xs text-gray-700 leading-relaxed">{dadosNextbitt.ot.observacoes}</p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Checklist */}

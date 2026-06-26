@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
 
     // 1. Estado da OT
     const otRes = await fetch(
-      `${BASE}/wo_workord?$filter=wo_id eq ${woId}&$select=wo_id,wo_work,xx_sit,wo_dateend,xx_descrip,imalink_quantity,lo_id`,
+      `${BASE}/wo_workord?$filter=wo_id eq ${woId}&$select=wo_id,wo_work,xx_sit,wo_dateend,xx_descrip,imalink_quantity,lo_id,wo_obs`,
       { headers }
     )
     if (!otRes.ok) return NextResponse.json({ erro: `Erro ao consultar OT (HTTP ${otRes.status}).` }, { status: 502 })
@@ -73,6 +73,7 @@ export async function GET(req: NextRequest) {
         situacao_descricao: SITUACOES[ot.xx_sit] ?? ot.xx_sit,
         data_fecho: ot.wo_dateend ?? null,
         descricao: ot.xx_descrip?.trim(),
+        observacoes: ot.wo_obs?.trim() ?? null,
         anexos: ot.imalink_quantity ?? 0,
       },
       checklist: checklist.map((c: any) => ({
