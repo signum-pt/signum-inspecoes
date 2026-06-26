@@ -152,24 +152,50 @@ export async function POST(req: NextRequest) {
     const lo_id_padded = visita.lojas.nextbitt_lo_id.padEnd(20)
     const descricao = `${visita.templates?.nome ?? 'Inspeção'} — ${visita.lojas?.nome}`
 
-    // 1. Procurar OT Preventiva (MP) da loja
+    // 1. Procurar OT Preventiva (MP) da loja — seleccionar pelo semestre da visita
     log(`A procurar OT Preventiva para loja ${lo_id_padded.trim()}...`)
     let woId: number | null = null
     let woWork: number = 1
     let woDescricao: string = ''
     try {
       const otRes = await fetch(
-        `${BASE}/wo_workord?$filter=ty_id eq 'MP' and lo_id eq '${lo_id_padded}'&$select=wo_id,wo_work,lo_id,xx_sit,xx_descrip&$top=1`,
+        `${BASE}/wo_workord?$filter=ty_id eq 'MP' and lo_id eq '${lo_id_padded}'&$select=wo_id,wo_work,lo_id,xx_sit,xx_descrip,wo_schd_dt`,
         { headers }
       )
       if (otRes.ok) {
         const otData = await otRes.json()
-        const ot = otData.value?.[0]
-        if (ot) {
-          woId = ot.wo_id
-          woWork = ot.wo_work ?? 1
-          woDescricao = ot.xx_descrip ?? ''
-          log(`OT encontrada: wo_id=${woId} wo_work=${woWork} | situação=${ot.xx_sit} | ${woDescricao.trim()}`)
+        const ots: any[] = otData.value ?? []
+        if (ots.length > 0) {
+          // Seleccionar OT pelo semestre da visita
+          const visitaDate = new Date(visita.data_visita)
+          const visitaMes = visitaDate.getMonth() + 1 // 1-12
+          const visitaAno = visitaDate.getFullYear()
+          const semestre = visitaMes <= 6 ? 1 : 2
+          const semestreInicio = semestre === 1 ? `${visitaAno}-01-01` : `${visitaAno}-07-01`
+          const semestreFim   = semestre === 1 ? `${visitaAno}-06-30` : `${visitaAno}-12-31`
+          log(`Semestre da visita: ${semestre}º (${semestreInicio} → ${semestreFim}) — ${ots.length} OT(s) disponíveis`)
+
+          // Filtrar OTs com wo_schd_dt no semestre, senão a mais próxima
+          const otsSemestre = ots.filter(o => {
+            if (!o.wo_schd_dt) return false
+            const d = o.wo_schd_dt.slice(0, 10)
+            return d >= semestreInicio && d <= semestreFim
+          })
+          const candidatas = otsSemestre.length > 0 ? otsSemestre : ots
+          // Das candidatas, escolher a de wo_schd_dt mais próxima da data da visita
+          const ot = candidatas.reduce((best: any, cur: any) => {
+            if (!best) return cur
+            const dBest = Math.abs(new Date(best.wo_schd_dt ?? visita.data_visita).getTime() - visitaDate.getTime())
+            const dCur  = Math.abs(new Date(cur.wo_schd_dt  ?? visita.data_visita).getTime() - visitaDate.getTime())
+            return dCur < dBest ? cur : best
+          }, null)
+
+          if (ot) {
+            woId = ot.wo_id
+            woWork = ot.wo_work ?? 1
+            woDescricao = ot.xx_descrip ?? ''
+            log(`OT seleccionada: wo_id=${woId} wo_work=${woWork} | situação=${ot.xx_sit} | schd=${ot.wo_schd_dt?.slice(0,10)} | ${woDescricao.trim()}`)
+          }
         } else {
           log(`Aviso: nenhuma OT Preventiva encontrada para esta loja`)
         }
