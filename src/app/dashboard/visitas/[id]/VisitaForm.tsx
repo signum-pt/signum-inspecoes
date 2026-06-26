@@ -1056,10 +1056,7 @@ function CampoInput({ tc, valor, respostas, secoes, onChange, disabled }: {
 
       {campo.tipo === 'sim_nao' && (
         <div className="flex gap-3">
-          {(campo.chave?.startsWith('tem_') || campo.chave?.startsWith('possui_')
-            ? [{ v: true, l: 'Sim' }, { v: false, l: 'Não' }]
-            : [{ v: true, l: '✓  Conforme' }, { v: false, l: '✗  Não conforme' }]
-          ).map(opt => (
+          {[{ v: true, l: 'Sim' }, { v: false, l: 'Não' }].map(opt => (
             <button key={String(opt.v)} type="button" disabled={disabled}
               onClick={() => onChange(opt.v)}
               className={`flex-1 py-3 lg:py-2 rounded-lg text-base lg:text-sm font-medium border transition-colors ${
