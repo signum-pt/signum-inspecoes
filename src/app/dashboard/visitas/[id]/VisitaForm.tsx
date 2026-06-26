@@ -1037,7 +1037,7 @@ function CampoInput({ tc, valor, respostas, secoes, onChange, disabled }: {
   const base = "w-full px-3 py-3 lg:py-2 border border-gray-200 rounded-lg text-base lg:text-sm focus:outline-none focus:ring-2 focus:ring-[#D41317] disabled:bg-gray-50 disabled:text-gray-500"
 
   if (campo.tipo === 'separador') {
-    const titulo = campo.nome && campo.nome !== '—' ? campo.nome : null
+    const titulo = tc.placeholder || null
     return (
       <div className="col-span-full flex items-center gap-3 pt-1 pb-0.5">
         {titulo && <span className="text-xs font-bold text-gray-500 uppercase tracking-widest whitespace-nowrap">{titulo}</span>}

@@ -63,7 +63,7 @@ function SortableCampoItem({ c, onToggleObrigatorio, onToggleNegrito, onRemove, 
           className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 cursor-grab active:cursor-grabbing touch-none" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className={`text-sm font-medium ${isSep ? 'text-white uppercase tracking-widest text-xs' : 'text-gray-900'}`}>{c.campo.nome}</span>
+            <span className={`text-sm font-medium ${isSep ? 'text-white uppercase tracking-widest text-xs' : 'text-gray-900'}`}>{isSep ? (c.placeholder || '—') : c.campo.nome}</span>
             {!isSep && c.campo.unidade && <span className="text-xs text-gray-400">({c.campo.unidade})</span>}
             {!isSep && (
               <span className={`text-xs px-2 py-0.5 rounded-full ${tipoCor[c.campo.tipo] ?? 'bg-gray-100'}`}>
@@ -316,9 +316,9 @@ export default function EditarTemplateForm({ template, secoesIniciais, todosCamp
   async function adicionarSeparador(secaoId: string, nome: string) {
     const { data: sepCampo } = await createClient().from('campos').select('*').eq('chave', 'separador').single()
     if (!sepCampo) return
-    const campo: Campo = { ...sepCampo, nome: nome || '—' }
+    const campo: Campo = { ...sepCampo }
     setSecoes(s => s.map(x => x.id !== secaoId ? x : {
-      ...x, campos: [...x.campos, { uid: crypto.randomUUID(), campo, obrigatorio: false, negrito: false, placeholder: '' }]
+      ...x, campos: [...x.campos, { uid: crypto.randomUUID(), campo, obrigatorio: false, negrito: false, placeholder: nome || '' }]
     }))
   }
 
