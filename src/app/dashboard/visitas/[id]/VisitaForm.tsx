@@ -1106,13 +1106,14 @@ function CampoInput({ tc, valor, respostas, secoes, onChange, disabled }: {
         <div className="flex flex-wrap gap-2">
           {(campo.opcoes ?? []).map((op: string, idx: number, arr: string[]) => {
             const selected = valor === op
-            const pos = arr.length === 1 ? 'mid'
-              : idx === 0 ? 'first'
-              : idx === arr.length - 1 ? 'last'
-              : 'mid'
-            const cor = pos === 'first'
+            const opLow = op.toLowerCase()
+            const tipo = opLow === 'ok' || opLow === 'conforme' || opLow === 'sim' || opLow === 'bom' ? 'green'
+              : opLow === 'nok' || opLow === 'não conforme' || opLow === 'nao conforme' || opLow === 'não' || opLow === 'nao' || opLow === 'mau' ? 'red'
+              : opLow.includes('aplicaç') || opLow.includes('aplica') || opLow === 'n/a' || opLow === 'na' ? 'yellow'
+              : idx === 0 ? 'green' : idx === arr.length - 1 ? 'red' : 'yellow'
+            const cor = tipo === 'green'
               ? selected ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 text-gray-600 hover:border-green-300 hover:text-green-600'
-              : pos === 'last'
+              : tipo === 'red'
               ? selected ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 text-gray-600 hover:border-red-300 hover:text-red-600'
               : selected ? 'border-yellow-400 bg-yellow-50 text-yellow-700' : 'border-gray-200 text-gray-600 hover:border-yellow-300 hover:text-yellow-600'
             return (
