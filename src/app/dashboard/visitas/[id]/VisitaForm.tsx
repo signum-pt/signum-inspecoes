@@ -185,6 +185,23 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
   // Verificar alterações vs loja antes de concluir
   async function handleConcluir() {
     if (aConcluir) return
+
+    // Validar campos obrigatórios
+    const camposFalha: string[] = []
+    for (const s of secoes) {
+      for (const tc of s.template_campos ?? []) {
+        if (!tc.obrigatorio) continue
+        if (tc.campos?.tipo === 'separador' || tc.campos?.tipo === 'foto') continue
+        const val = respostas[tc.campo_id]
+        const vazio = val === undefined || val === null || val === '' || (Array.isArray(val) && val.length === 0)
+        if (vazio) camposFalha.push(tc.campos?.nome ?? tc.campo_id)
+      }
+    }
+    if (camposFalha.length > 0) {
+      alert(`Campos obrigatórios por preencher:\n\n• ${camposFalha.join('\n• ')}`)
+      return
+    }
+
     setAConcluir(true)
     if (debounceRef.current) clearTimeout(debounceRef.current)
     await guardarRespostas(respostas, observacoes, nomeCliente)
