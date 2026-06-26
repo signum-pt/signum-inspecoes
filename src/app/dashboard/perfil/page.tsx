@@ -2,13 +2,18 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Save, User, Lock, Check, Eye, EyeOff } from 'lucide-react'
+import { Save, User, Lock, Check, Eye, EyeOff, Link } from 'lucide-react'
 
 export default function PerfilPage() {
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
   const [role, setRole] = useState('')
   const [carregando, setCarregando] = useState(true)
+
+  const [nextbittEmpId, setNextbittEmpId] = useState('')
+  const [guardandoNextbitt, setGuardandoNextbitt] = useState(false)
+  const [guardadoNextbitt, setGuardadoNextbitt] = useState(false)
+  const [erroNextbitt, setErroNextbitt] = useState('')
 
   const [guardandoNome, setGuardandoNome] = useState(false)
   const [guardadoNome, setGuardadoNome] = useState(false)
@@ -33,8 +38,8 @@ export default function PerfilPage() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return
       setEmail(user.email ?? '')
-      supabase.from('profiles').select('nome, role').eq('id', user.id).single().then(({ data }) => {
-        if (data) { setNome(data.nome); setRole(data.role) }
+      supabase.from('profiles').select('nome, role, nextbitt_emp_id').eq('id', user.id).single().then(({ data }) => {
+        if (data) { setNome(data.nome); setRole(data.role); setNextbittEmpId(data.nextbitt_emp_id ? String(data.nextbitt_emp_id) : '') }
         setCarregando(false)
       })
     })
@@ -51,6 +56,21 @@ export default function PerfilPage() {
     if (error) { setErroNome('Erro ao guardar.'); return }
     setGuardadoNome(true)
     setTimeout(() => setGuardadoNome(false), 3000)
+  }
+
+  async function handleGuardarNextbitt(e: React.FormEvent) {
+    e.preventDefault()
+    setErroNextbitt('')
+    const empId = parseInt(nextbittEmpId)
+    if (!nextbittEmpId || isNaN(empId)) { setErroNextbitt('Introduza um Nº Recurso válido.'); return }
+    setGuardandoNextbitt(true)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    const { error } = await supabase.from('profiles').update({ nextbitt_emp_id: empId }).eq('id', user!.id)
+    setGuardandoNextbitt(false)
+    if (error) { setErroNextbitt('Erro ao guardar.'); return }
+    setGuardadoNextbitt(true)
+    setTimeout(() => setGuardadoNextbitt(false), 3000)
   }
 
   async function handleAlterarPassword(e: React.FormEvent) {
@@ -134,6 +154,43 @@ export default function PerfilPage() {
               {guardandoNome ? 'A guardar...' : 'Guardar nome'}
             </button>
             {guardadoNome && <span className="text-sm text-green-600 flex items-center gap-1"><Check className="w-4 h-4" /> Guardado</span>}
+          </div>
+        </form>
+      </div>
+
+      {/* Integração Nextbitt */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+        <div className="flex items-center gap-3 mb-5 pb-4 border-b border-gray-100">
+          <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+            <Link className="w-5 h-5 text-blue-500" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gray-900">Integração Nextbitt</p>
+            <p className="text-xs text-gray-400">Nº Recurso para preencher automaticamente o campo Recurso nas OTs</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleGuardarNextbitt} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nº Recurso Nextbitt</label>
+            <input
+              type="number" value={nextbittEmpId} onChange={e => setNextbittEmpId(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D41317] focus:border-transparent"
+              placeholder="Ex: 910830672"
+            />
+            <p className="text-xs text-gray-400 mt-1">Consulta o teu Nº Recurso no portal Nextbitt → Pesquisar Recurso.</p>
+          </div>
+
+          {erroNextbitt && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{erroNextbitt}</p>}
+
+          <div className="flex items-center gap-3">
+            <button type="submit" disabled={guardandoNextbitt}
+              className="flex items-center gap-2 text-white px-5 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
+              style={{ backgroundColor: '#D41317' }}>
+              <Save className="w-4 h-4" />
+              {guardandoNextbitt ? 'A guardar...' : 'Guardar'}
+            </button>
+            {guardadoNextbitt && <span className="text-sm text-green-600 flex items-center gap-1"><Check className="w-4 h-4" /> Guardado</span>}
           </div>
         </form>
       </div>
