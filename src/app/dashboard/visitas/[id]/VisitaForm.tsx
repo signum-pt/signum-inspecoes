@@ -91,6 +91,8 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
   const [modalAlteracoes, setModalAlteracoes] = useState<Alteracao[] | null>(null)
   const [aAtualizarLoja, setAAtualizarLoja] = useState(false)
   const [aApagar, setAApagar] = useState(false)
+  const [aGerarPDF, setAGerarPDF] = useState(false)
+  const [aConcluir, setAConcluir] = useState(false)
   const [modalAssinatura, setModalAssinatura] = useState(false)
   const [modalReagendar, setModalReagendar] = useState(false)
   const [novaData, setNovaData] = useState(visita.data_visita)
@@ -182,6 +184,8 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
 
   // Verificar alterações vs loja antes de concluir
   async function handleConcluir() {
+    if (aConcluir) return
+    setAConcluir(true)
     if (debounceRef.current) clearTimeout(debounceRef.current)
     await guardarRespostas(respostas, observacoes, nomeCliente)
 
@@ -214,6 +218,7 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
     }
 
     if (alteracoes.length > 0) {
+      setAConcluir(false)
       setModalAlteracoes(alteracoes)
     } else {
       avancarEstadoDireto('concluida')
@@ -580,11 +585,16 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
       {/* Acções — barra fixa no fundo em mobile/tablet, inline no desktop */}
       <div className="fixed bottom-0 left-0 right-0 lg:static bg-white lg:bg-transparent border-t border-gray-200 lg:border-0 px-4 py-3 lg:p-0 shadow-[0_-2px_12px_rgba(0,0,0,0.08)] lg:shadow-none z-30 flex items-center gap-2 lg:gap-3 flex-wrap">
         {(estadoVisita === 'concluida' || estadoVisita === 'assinada') && (
-          <a href={`/api/visitas/${visita.id}/pdf`} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-2 border border-gray-300 text-gray-700 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
-            <FileDown className="w-4 h-4" />
-            Gerar PDF
-          </a>
+          <button disabled={aGerarPDF} onClick={async () => {
+            setAGerarPDF(true)
+            window.open(`/api/visitas/${visita.id}/pdf`, '_blank')
+            setTimeout(() => setAGerarPDF(false), 3000)
+          }}
+            className="flex items-center gap-2 border border-gray-300 text-gray-700 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed transition-colors">
+            {aGerarPDF
+              ? <><div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />A gerar...</>
+              : <><FileDown className="w-4 h-4" />Gerar PDF</>}
+          </button>
         )}
         {estadoVisita === 'assinada' && !visita.pdf_assinado_url && (profile?.role === 'admin' || profile?.id === visita.tecnico_id) && (
           <button onClick={() => setModalAssinatura(true)}
@@ -637,10 +647,11 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
           </button>
         )}
         {podeEditar && estadoVisita === 'em_curso' && (
-          <button onClick={handleConcluir}
-            className="flex items-center gap-2 bg-green-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
-            <CheckCircle className="w-4 h-4" />
-            Concluir visita
+          <button onClick={handleConcluir} disabled={aConcluir}
+            className="flex items-center gap-2 bg-green-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors">
+            {aConcluir
+              ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />A concluir...</>
+              : <><CheckCircle className="w-4 h-4" />Concluir visita</>}
           </button>
         )}
         {estadoVisita === 'concluida' && (profile?.role === 'admin' || profile?.id === visita.tecnico_id) && (
@@ -825,8 +836,9 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
                     disabled={aExportar}
                     className="flex-1 flex items-center justify-center gap-2 text-white py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors bg-blue-600 hover:bg-blue-700"
                   >
-                    <Send className="w-4 h-4" />
-                    {aExportar ? 'A exportar...' : 'Confirmar exportação'}
+                    {aExportar
+                      ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />A exportar...</>
+                      : <><Send className="w-4 h-4" />Confirmar exportação</>}
                   </button>
                   <button
                     onClick={() => { setModalNextbitt(false); setErroNextbitt(''); setLogsNextbitt([]) }}
