@@ -6,7 +6,7 @@ const ODATA_PROD = 'https://sonaemcapi.nextbitt.net/odata'
 
 // Mapeamento: pm_task Nextbitt → { chave do valor OK/NOK, chave das notas }
 const MAPA_VERIFICACOES: Record<string, { valor: string; notas?: string }> = {
-  'Verificação Terras Proteção':               { valor: 'terras_pt' },
+  'Verificação Terras Proteção':               { valor: 'estado_das_terras', notas: 'observacoes_terras_sonae' },
   'Verificação Salas Técnicas':                { valor: 'salas_tecnicas',                   notas: 'observacoes_salas_tecnicas' },
   'Verificação Posto Transformação':           { valor: 'estado_posto_transformacao',        notas: 'observacoes_pt' },
   'Verificação Gerador':                       { valor: 'estado_geradores',                  notas: 'observacoes_grupos_geradores' },
