@@ -29,10 +29,9 @@ export default async function LojaDetalhe({ params }: { params: Promise<{ id: st
 
   const { data: visitas } = await supabase
     .from('visitas')
-    .select('id, data_visita, estado, templates(nome), profiles(nome)')
+    .select('id, data_visita, estado, visita_extra, templates(nome), profiles(nome)')
     .eq('loja_id', id)
     .order('data_visita', { ascending: false })
-    .limit(10)
 
   return (
     <div className="p-8 max-w-3xl">
@@ -145,7 +144,7 @@ export default async function LojaDetalhe({ params }: { params: Promise<{ id: st
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
           <ClipboardList className="w-4 h-4 text-gray-400" />
-          Visitas ({visitas?.length ?? 0})
+          Visitas
         </h2>
         {canEdit && (
           <Link href={`/dashboard/visitas/nova?loja_id=${id}`}
@@ -156,45 +155,113 @@ export default async function LojaDetalhe({ params }: { params: Promise<{ id: st
         )}
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        {visitas && visitas.length > 0 ? (
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Data</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Template</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Técnico</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
-                <th className="px-5 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {visitas.map((v: any) => (
-                <tr key={v.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-5 py-3 text-sm text-gray-900">{new Date(v.data_visita).toLocaleDateString('pt-PT')}</td>
-                  <td className="px-5 py-3 text-sm text-gray-600">{v.templates?.nome ?? '—'}</td>
-                  <td className="px-5 py-3 text-sm text-gray-600">{v.profiles?.nome ?? '—'}</td>
-                  <td className="px-5 py-3">
-                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${estadoCor[v.estado] ?? 'bg-gray-100 text-gray-600'}`}>
-                      {estadoLabel[v.estado] ?? v.estado}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 text-right">
-                    <Link href={`/dashboard/visitas/${v.id}`} className="text-sm font-medium hover:underline" style={{ color: '#D41317' }}>Ver</Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <div className="text-center py-10 text-gray-400">
-            <p className="text-sm">Ainda não há visitas para esta loja.</p>
-            {canEdit && (
-              <Link href={`/dashboard/visitas/nova?loja_id=${id}`} className="text-sm hover:underline mt-1 inline-block" style={{ color: '#D41317' }}>
-                Criar primeira visita
-              </Link>
-            )}
+      {visitas && visitas.length > 0 ? (
+        <VisitasSemestrais visitas={visitas} lojaId={id} canEdit={canEdit} />
+      ) : (
+        <div className="bg-white rounded-xl border border-gray-200 text-center py-10 text-gray-400">
+          <p className="text-sm">Ainda não há visitas para esta loja.</p>
+          {canEdit && (
+            <Link href={`/dashboard/visitas/nova?loja_id=${id}`} className="text-sm hover:underline mt-1 inline-block" style={{ color: '#D41317' }}>
+              Criar primeira visita
+            </Link>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function VisitasSemestrais({ visitas, lojaId, canEdit }: { visitas: any[]; lojaId: string; canEdit: boolean }) {
+  // Separar semestrais das extras
+  const semestrais = visitas.filter(v => !v.visita_extra)
+  const extras = visitas.filter(v => v.visita_extra)
+
+  // Agrupar semestrais por ano
+  const porAno: Record<number, { s1: any | null; s2: any | null }> = {}
+  const anosComVisitas = new Set(semestrais.map(v => new Date(v.data_visita).getFullYear()))
+  const anoAtual = new Date().getFullYear()
+  const anosParaMostrar = new Set([...anosComVisitas, anoAtual])
+
+  for (const ano of anosParaMostrar) {
+    const s1 = semestrais.find(v => {
+      const d = new Date(v.data_visita)
+      return d.getFullYear() === ano && d.getMonth() < 6
+    }) ?? null
+    const s2 = semestrais.find(v => {
+      const d = new Date(v.data_visita)
+      return d.getFullYear() === ano && d.getMonth() >= 6
+    }) ?? null
+    porAno[ano] = { s1, s2 }
+  }
+
+  const anos = Object.keys(porAno).map(Number).sort((a, b) => b - a)
+
+  return (
+    <div className="space-y-4">
+      {anos.map(ano => (
+        <div key={ano} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="px-5 py-3 bg-gray-50 border-b border-gray-100">
+            <span className="text-sm font-semibold text-gray-700">{ano}</span>
           </div>
+          <div className="divide-y divide-gray-50">
+            <SemestreRow label="1º Semestre" visita={porAno[ano].s1} lojaId={lojaId} />
+            <SemestreRow label="2º Semestre" visita={porAno[ano].s2} lojaId={lojaId} />
+          </div>
+        </div>
+      ))}
+
+      {/* Visitas extra */}
+      {extras.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="px-5 py-3 bg-purple-50 border-b border-purple-100">
+            <span className="text-sm font-semibold text-purple-700">Visitas extra</span>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {extras.map(v => (
+              <div key={v.id} className="flex items-center justify-between px-5 py-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-gray-900">{new Date(v.data_visita + 'T12:00:00').toLocaleDateString('pt-PT')}</span>
+                  <span className="text-xs text-gray-400">{v.profiles?.nome ?? '—'}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${estadoCor[v.estado] ?? 'bg-gray-100 text-gray-600'}`}>
+                    {estadoLabel[v.estado] ?? v.estado}
+                  </span>
+                  <Link href={`/dashboard/visitas/${v.id}`} className="text-sm font-medium hover:underline" style={{ color: '#D41317' }}>Ver</Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SemestreRow({ label, visita, lojaId }: { label: string; visita: any | null; lojaId: string }) {
+  return (
+    <div className="flex items-center justify-between px-5 py-3.5">
+      <div className="flex items-center gap-3 min-w-0">
+        <span className="text-sm font-medium text-gray-500 w-28 flex-shrink-0">{label}</span>
+        {visita ? (
+          <>
+            <span className="text-sm text-gray-900">{new Date(visita.data_visita + 'T12:00:00').toLocaleDateString('pt-PT')}</span>
+            <span className="text-xs text-gray-400 hidden sm:inline truncate">{visita.profiles?.nome ?? '—'}</span>
+          </>
+        ) : (
+          <span className="text-sm text-gray-300 italic">Por fazer</span>
+        )}
+      </div>
+      <div className="flex items-center gap-3 flex-shrink-0">
+        {visita ? (
+          <>
+            <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${estadoCor[visita.estado] ?? 'bg-gray-100 text-gray-600'}`}>
+              {estadoLabel[visita.estado] ?? visita.estado}
+            </span>
+            <Link href={`/dashboard/visitas/${visita.id}`} className="text-sm font-medium hover:underline" style={{ color: '#D41317' }}>Ver</Link>
+          </>
+        ) : (
+          <span className="w-2 h-2 rounded-full bg-gray-200 inline-block" />
         )}
       </div>
     </div>

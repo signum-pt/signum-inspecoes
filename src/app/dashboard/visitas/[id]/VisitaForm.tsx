@@ -444,6 +444,11 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
           <span className={`text-xs font-medium px-3 py-1.5 rounded-full ${estadoCor[estadoVisita]}`}>
             {estadoLabel[estadoVisita]}
           </span>
+          {visita.visita_extra && (
+            <span className="text-xs font-medium px-3 py-1.5 rounded-full bg-purple-100 text-purple-700">
+              Visita extra
+            </span>
+          )}
         </div>
       </div>
 
@@ -628,7 +633,7 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
             PDF Assinado
           </a>
         )}
-        {estadoVisita === 'assinada' && visita.pdf_assinado_url && visita.lojas?.nextbitt_lo_id && (
+        {estadoVisita === 'assinada' && visita.pdf_assinado_url && visita.lojas?.nextbitt_lo_id && !visita.visita_extra && (
           nextbittExportado ? (
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 border border-blue-200 text-blue-600 bg-blue-50 px-5 py-2.5 rounded-lg text-sm font-medium">
