@@ -993,6 +993,29 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
                     )}
                   </div>
 
+                  {/* Outras OTs da loja */}
+                  {dadosNextbitt.ots_loja?.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                        OTs MP desta loja ({dadosNextbitt.ots_loja.length})
+                      </p>
+                      <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
+                        {dadosNextbitt.ots_loja.map((o: any, i: number) => (
+                          <div key={i} className={`px-4 py-2.5 flex items-center justify-between text-xs ${o.esta_ot ? 'bg-blue-50' : 'bg-white'}`}>
+                            <div className="flex items-center gap-2">
+                              {o.esta_ot && <span className="text-blue-500 font-bold">→</span>}
+                              <span className="font-mono text-gray-600">{o.wo_id} / {o.wo_work}</span>
+                              <span className="text-gray-400">{o.data_planeada ? new Date(o.data_planeada + 'T12:00:00').toLocaleDateString('pt-PT') : '—'}</span>
+                            </div>
+                            <span className={`font-medium px-2 py-0.5 rounded-full ${o.situacao_codigo === '14' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                              {o.situacao_descricao}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Descrições */}
                   {(dadosNextbitt.ot.descricao || dadosNextbitt.ot.descricao_trabalho) && (
                     <div className="space-y-2">

@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
 
     const { data: visita } = await supabase
       .from('visitas')
-      .select('nextbitt_id, nextbitt_exportado_em, lojas(nome), data_visita')
+      .select('nextbitt_id, nextbitt_exportado_em, lojas(nome, nextbitt_lo_id), data_visita')
       .eq('id', visita_id)
       .single()
 
@@ -58,7 +58,21 @@ export async function GET(req: NextRequest) {
     const ot = otData.value?.[0]
     if (!ot) return NextResponse.json({ erro: 'OT não encontrada no Nextbitt.' }, { status: 404 })
 
-    // 2. Checklist completo com recurso
+    // 2. Todas as OTs MP da mesma loja (para ver ambos os semestres)
+    const lojaId = (visita.lojas as any)?.nextbitt_lo_id
+    let ots_loja: any[] = []
+    if (lojaId) {
+      const lo_id_padded = String(lojaId).padStart(6, '0')
+      const siblingsRes = await fetch(
+        `${BASE}/wo_workord?$filter=ty_id eq 'MP' and lo_id eq '${lo_id_padded}'&$select=wo_id,wo_work,xx_sit,wo_schd_dt,xx_descrip&$orderby=wo_schd_dt`,
+        { headers }
+      )
+      if (siblingsRes.ok) {
+        ots_loja = (await siblingsRes.json()).value ?? []
+      }
+    }
+
+    // 3. Checklist completo com recurso
     const chkRes = await fetch(
       `${BASE}/pm_jobchs?$filter=wo_id eq ${woId}&$select=pm_task,pm_state_name,pm_obs,xx_dt_rec,xx_respexc&$orderby=xx_seq`,
       { headers }
@@ -92,6 +106,14 @@ export async function GET(req: NextRequest) {
         recurso: c.xx_respexc ?? null,
       })),
       exportado_em: visita.nextbitt_exportado_em,
+      ots_loja: ots_loja.map((o: any) => ({
+        wo_id: o.wo_id,
+        wo_work: o.wo_work,
+        situacao_codigo: o.xx_sit,
+        situacao_descricao: SITUACOES[o.xx_sit] ?? o.xx_sit,
+        data_planeada: o.wo_schd_dt ? o.wo_schd_dt.slice(0, 10) : null,
+        esta_ot: o.wo_id === woId,
+      })),
     })
   } catch (err: any) {
     return NextResponse.json({ erro: err.message ?? 'Erro desconhecido.' }, { status: 500 })
