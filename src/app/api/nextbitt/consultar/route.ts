@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
 
     // 1. Estado da OT
     const otRes = await fetch(
-      `${BASE}/wo_workord?$filter=wo_id eq ${woId}&$select=wo_id,wo_work,xx_sit,wo_dateend,xx_descrip,imalink_quantity,lo_id,wo_obs`,
+      `${BASE}/wo_workord?$filter=wo_id eq ${woId}&$select=wo_id,wo_work,xx_sit,wo_dateend,xx_descrip,imalink_quantity,lo_id`,
       { headers }
     )
     if (!otRes.ok) return NextResponse.json({ erro: `Erro ao consultar OT (HTTP ${otRes.status}).` }, { status: 502 })
