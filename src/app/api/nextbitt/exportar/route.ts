@@ -216,7 +216,7 @@ export async function POST(req: NextRequest) {
     // Verificar estado actual da OT
     try {
       const verificaRes = await fetch(
-        `${BASE}/wo_workord(${woId})?$select=wo_id,xx_sit,wo_dateend,xx_descrip,lo_id`,
+        `${BASE}/wo_workord(wo_id=${woId},wo_work=${woWork})?$select=wo_id,xx_sit,wo_dateend,xx_descrip,lo_id`,
         { headers }
       )
       if (verificaRes.ok) {
