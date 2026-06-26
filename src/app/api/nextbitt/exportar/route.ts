@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
 
     const { data: visita } = await supabase
       .from('visitas')
-      .select('*, lojas(nome, nextbitt_lo_id), profiles(nome), templates(nome)')
+      .select('*, lojas(nome, nextbitt_lo_id), profiles(nome, nextbitt_username), templates(nome)')
       .eq('id', visita_id)
       .single()
 
@@ -121,11 +121,33 @@ export async function POST(req: NextRequest) {
     log(`Ambiente: ${process.env.NEXTBITT_ENV ?? 'qa (default)'} → ${BASE}`)
     log(`Visita: ${visita_id}`)
     log(`Loja: ${visita.lojas?.nome} (lo_id: ${visita.lojas?.nextbitt_lo_id})`)
-    log(`Técnico: ${visita.profiles?.nome}`)
+    log(`Técnico: ${visita.profiles?.nome} (${visita.profiles?.nextbitt_username ?? 'sem username Nextbitt'})`)
     log(`Template: ${visita.templates?.nome}`)
     log(`PDF assinado: ${visita.pdf_assinado_url ? 'sim' : 'não'}`)
     const verificacoesPreenchidas = Object.values(MAPA_VERIFICACOES).filter(m => mapaRespostas[m.valor]).length
     log(`Verificações preenchidas: ${verificacoesPreenchidas} de ${Object.keys(MAPA_VERIFICACOES).length}`)
+
+    // Lookup lb_emp_id do técnico pelo username Nextbitt
+    let tecnicoEmpId: number | null = null
+    const nbUsername = visita.profiles?.nextbitt_username
+    if (nbUsername) {
+      try {
+        const empRes = await fetch(`${BASE}/lb_employe?$filter=us_shtname eq '${nbUsername}'&$select=lb_emp_id,xx_rname&$top=1`, { headers })
+        if (empRes.ok) {
+          const empData = await empRes.json()
+          if (empData.value?.length > 0) {
+            tecnicoEmpId = empData.value[0].lb_emp_id
+            log(`Recurso encontrado: ${empData.value[0].xx_rname} (lb_emp_id=${tecnicoEmpId})`)
+          } else {
+            log(`Aviso: username "${nbUsername}" não encontrado em lb_employe`)
+          }
+        }
+      } catch (e: any) {
+        log(`Aviso: erro ao procurar recurso — ${e?.message}`)
+      }
+    } else {
+      log(`Aviso: técnico sem nextbitt_username — campo Recurso não será preenchido`)
+    }
 
     const lo_id_padded = visita.lojas.nextbitt_lo_id.padEnd(20)
     const descricao = `${visita.templates?.nome ?? 'Inspeção'} — ${visita.lojas?.nome}`
@@ -251,6 +273,7 @@ export async function POST(req: NextRequest) {
           xx_dt_rec: dataRealizacao,
         }
         if (notas) patchBody.pm_obs = notas.slice(0, 400)
+        if (tecnicoEmpId) patchBody.xx_respexc = tecnicoEmpId
 
         try {
           const r = await fetch(`${BASE}/pm_jobchs(${item.xx_ident})`, {
