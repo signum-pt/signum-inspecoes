@@ -124,6 +124,7 @@ export default function NovaVisitaForm() {
         template_versao: template?.versao ?? 1,
         template_snapshot: secoesSnapshot ?? [],
         data_visita: dataVisita,
+        data_agendada: dataVisita,
         estado,
         visita_extra: extra,
       })

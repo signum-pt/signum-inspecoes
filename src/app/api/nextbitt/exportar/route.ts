@@ -216,6 +216,11 @@ export async function POST(req: NextRequest) {
     const obsFinais = mapaRespostas['observacoes_finais'] ?? null
     const patchPayload: Record<string, any> = { xx_sit: '14', wo_dateend: dataFecho, xx_descrip: woDescricao, xx_dscwork: woDescricao.trim() }
     if (obsFinais) patchPayload.wo_obs = String(obsFinais).slice(0, 2000)
+    // data_inicio = data em que o técnico marcou em curso (previsto no Nextbitt)
+    // TODO: confirmar campo exacto da API Nextbitt para "data prevista" (wo_dateplan?)
+    if (visita.data_inicio) {
+      patchPayload.wo_dateplan = new Date(visita.data_inicio + 'T12:00:00').toISOString()
+    }
     log(`A fechar OT ${woId} — payload: ${JSON.stringify(patchPayload)}`)
 
     let patchRes: Response

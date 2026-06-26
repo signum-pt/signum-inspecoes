@@ -108,6 +108,7 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
   const [modalConsultar, setModalConsultar] = useState(false)
   const [aConsultar, setAConsultar] = useState(false)
   const [secoesColapsadas, setSecoesColapsadas] = useState<Record<string, boolean>>({})
+  const [dataInicio, setDataInicio] = useState<string | null>(visita.data_inicio ?? null)
 
   function toggleSecao(id: string) {
     setSecoesColapsadas(prev => ({ ...prev, [id]: !prev[id] }))
@@ -250,7 +251,13 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
 
   async function avancarEstadoDireto(novoEstado: string) {
     const supabase = createClient()
-    await supabase.from('visitas').update({ estado: novoEstado }).eq('id', visita.id)
+    const update: Record<string, any> = { estado: novoEstado }
+    if (novoEstado === 'em_curso' && !visita.data_inicio) {
+      const hoje = new Date().toISOString().split('T')[0]
+      update.data_inicio = hoje
+      setDataInicio(hoje)
+    }
+    await supabase.from('visitas').update(update).eq('id', visita.id)
     setEstadoVisita(novoEstado)
     router.refresh()
   }
@@ -439,9 +446,30 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{visita.lojas?.nome}</h1>
             <p className="text-gray-500 text-sm mt-0.5">
-              {visita.lojas?.entidades?.nome} · {visita.templates?.nome} ·{' '}
-              {new Date(visita.data_visita).toLocaleDateString('pt-PT')}
+              {visita.lojas?.entidades?.nome} · {visita.templates?.nome}
             </p>
+            <div className="flex items-center gap-3 mt-1 flex-wrap">
+              {visita.data_agendada && (
+                <span className="text-xs text-gray-400">
+                  Agendada: <span className="text-gray-600 font-medium">{new Date(visita.data_agendada + 'T12:00:00').toLocaleDateString('pt-PT')}</span>
+                </span>
+              )}
+              {dataInicio && (
+                <span className="text-xs text-gray-400">
+                  Início: <span className="text-orange-600 font-medium">{new Date(dataInicio + 'T12:00:00').toLocaleDateString('pt-PT')}</span>
+                </span>
+              )}
+              {(estadoVisita === 'concluida' || estadoVisita === 'assinada') && (
+                <span className="text-xs text-gray-400">
+                  Realizado: <span className="text-green-600 font-medium">{new Date(visita.data_visita + 'T12:00:00').toLocaleDateString('pt-PT')}</span>
+                </span>
+              )}
+              {!dataInicio && estadoVisita === 'agendada' && (
+                <span className="text-xs text-gray-400">
+                  {new Date(visita.data_visita + 'T12:00:00').toLocaleDateString('pt-PT')}
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-3">
