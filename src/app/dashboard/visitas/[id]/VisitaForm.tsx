@@ -945,7 +945,7 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
               {dadosNextbitt && (
                 <>
                   {/* Cabeçalho OT */}
-                  <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
+                  <div className="bg-gray-50 rounded-xl p-4 space-y-2.5 text-sm">
                     <div className="flex items-center justify-between">
                       <span className="text-gray-500">Situação</span>
                       <span className={`font-semibold px-2 py-0.5 rounded-full text-xs ${dadosNextbitt.ot.situacao_codigo === '14' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
@@ -953,9 +953,21 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
+                      <span className="text-gray-500">OT</span>
+                      <span className="font-mono text-xs text-gray-700">{dadosNextbitt.ot.wo_id} / {dadosNextbitt.ot.wo_work}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
                       <span className="text-gray-500">Loja</span>
                       <span className="font-medium text-gray-800">{dadosNextbitt.ot.loja}</span>
                     </div>
+                    {dadosNextbitt.ot.data_planeada && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500">Data planeada</span>
+                        <span className="font-medium text-gray-800">
+                          {new Date(dadosNextbitt.ot.data_planeada + 'T12:00:00').toLocaleDateString('pt-PT')}
+                        </span>
+                      </div>
+                    )}
                     {dadosNextbitt.ot.data_fecho && (
                       <div className="flex items-center justify-between">
                         <span className="text-gray-500">Data de fecho</span>
@@ -971,19 +983,56 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
                         {dadosNextbitt.ot.anexos} {dadosNextbitt.ot.anexos === 1 ? 'ficheiro' : 'ficheiros'}
                       </span>
                     </div>
-                    {dadosNextbitt.ot.observacoes && (
-                      <div className="pt-1">
-                        <span className="text-gray-500 text-xs block mb-1">Observações finais</span>
-                        <p className="text-xs text-gray-700 leading-relaxed">{dadosNextbitt.ot.observacoes}</p>
+                    {dadosNextbitt.exportado_em && (
+                      <div className="flex items-center justify-between border-t border-gray-200 pt-2 mt-1">
+                        <span className="text-gray-400 text-xs">Exportado pelo Signum em</span>
+                        <span className="text-xs text-gray-500">
+                          {new Date(dadosNextbitt.exportado_em).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </span>
                       </div>
                     )}
                   </div>
+
+                  {/* Descrições */}
+                  {(dadosNextbitt.ot.descricao || dadosNextbitt.ot.descricao_trabalho) && (
+                    <div className="space-y-2">
+                      {dadosNextbitt.ot.descricao && (
+                        <div className="bg-gray-50 rounded-lg px-4 py-3">
+                          <p className="text-xs text-gray-400 mb-1">Descrição OT</p>
+                          <p className="text-xs text-gray-700 leading-relaxed">{dadosNextbitt.ot.descricao}</p>
+                        </div>
+                      )}
+                      {dadosNextbitt.ot.descricao_trabalho && (
+                        <div className="bg-gray-50 rounded-lg px-4 py-3">
+                          <p className="text-xs text-gray-400 mb-1">Descrição do trabalho</p>
+                          <p className="text-xs text-gray-700 leading-relaxed">{dadosNextbitt.ot.descricao_trabalho}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Resumo checklist */}
+                  {dadosNextbitt.resumo_checklist && (
+                    <div className="grid grid-cols-4 gap-2 text-center">
+                      {[
+                        { label: 'OK', val: dadosNextbitt.resumo_checklist.ok, cor: 'bg-green-50 text-green-700' },
+                        { label: 'NOK', val: dadosNextbitt.resumo_checklist.nok, cor: 'bg-red-50 text-red-700' },
+                        { label: 'N/A', val: dadosNextbitt.resumo_checklist.na, cor: 'bg-gray-100 text-gray-500' },
+                        { label: 'Vazios', val: dadosNextbitt.resumo_checklist.vazios, cor: dadosNextbitt.resumo_checklist.vazios > 0 ? 'bg-yellow-50 text-yellow-700' : 'bg-gray-50 text-gray-400' },
+                      ].map(({ label, val, cor }) => (
+                        <div key={label} className={`rounded-lg py-2 ${cor}`}>
+                          <p className="text-lg font-bold">{val}</p>
+                          <p className="text-xs">{label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Checklist */}
                   {dadosNextbitt.checklist.length > 0 && (
                     <div>
                       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                        Checklist — {dadosNextbitt.checklist.filter((c: any) => c.estado).length}/{dadosNextbitt.checklist.length} preenchidos
+                        Checklist ({dadosNextbitt.checklist.length} itens)
                       </p>
                       <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
                         {dadosNextbitt.checklist.map((item: any, i: number) => (
@@ -994,11 +1043,12 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
                               item.estado === 'Sem Aplicacao' ? 'bg-gray-100 text-gray-500' :
                               'bg-yellow-100 text-yellow-700'
                             }`}>
-                              {item.estado ?? '—'}
+                              {item.estado === 'Sem Aplicacao' ? 'N/A' : item.estado ?? '—'}
                             </span>
                             <div className="min-w-0 flex-1">
                               <p className="text-xs text-gray-700 font-medium leading-tight">{item.tarefa}</p>
-                              {item.notas && <p className="text-xs text-gray-400 mt-0.5 truncate">{item.notas}</p>}
+                              {item.notas && <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{item.notas}</p>}
+                              {item.recurso && <p className="text-xs text-blue-400 mt-0.5">Recurso: {item.recurso}</p>}
                             </div>
                             {item.data && <span className="text-xs text-gray-400 flex-shrink-0">{item.data}</span>}
                           </div>

@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
 
     // 1. Estado da OT
     const otRes = await fetch(
-      `${BASE}/wo_workord?$filter=wo_id eq ${woId}&$select=wo_id,wo_work,xx_sit,wo_dateend,xx_descrip,imalink_quantity,lo_id`,
+      `${BASE}/wo_workord?$filter=wo_id eq ${woId}&$select=wo_id,wo_work,xx_sit,wo_dateend,xx_descrip,xx_dscwork,imalink_quantity,lo_id,wo_schd_dt`,
       { headers }
     )
     if (!otRes.ok) return NextResponse.json({ erro: `Erro ao consultar OT (HTTP ${otRes.status}).` }, { status: 502 })
@@ -58,29 +58,38 @@ export async function GET(req: NextRequest) {
     const ot = otData.value?.[0]
     if (!ot) return NextResponse.json({ erro: 'OT não encontrada no Nextbitt.' }, { status: 404 })
 
-    // 2. Checklist completo
+    // 2. Checklist completo com recurso
     const chkRes = await fetch(
-      `${BASE}/pm_jobchs?$filter=wo_id eq ${woId}&$select=pm_task,pm_state_name,pm_obs,xx_dt_rec&$orderby=xx_seq`,
+      `${BASE}/pm_jobchs?$filter=wo_id eq ${woId}&$select=pm_task,pm_state_name,pm_obs,xx_dt_rec,xx_respexc&$orderby=xx_seq`,
       { headers }
     )
     const checklist = chkRes.ok ? (await chkRes.json()).value ?? [] : []
 
+    const nok = checklist.filter((c: any) => c.pm_state_name === 'NOK').length
+    const ok = checklist.filter((c: any) => c.pm_state_name === 'OK').length
+    const na = checklist.filter((c: any) => c.pm_state_name === 'Sem Aplicacao').length
+    const vazios = checklist.filter((c: any) => !c.pm_state_name).length
+
     return NextResponse.json({
       ot: {
         wo_id: ot.wo_id,
+        wo_work: ot.wo_work,
         loja: ot.lo_id?.trim(),
         situacao_codigo: ot.xx_sit,
         situacao_descricao: SITUACOES[ot.xx_sit] ?? ot.xx_sit,
+        data_planeada: ot.wo_schd_dt ? ot.wo_schd_dt.slice(0, 10) : null,
         data_fecho: ot.wo_dateend ?? null,
-        descricao: ot.xx_descrip?.trim(),
-        observacoes: ot.wo_obs?.trim() ?? null,
+        descricao: ot.xx_descrip?.trim() ?? null,
+        descricao_trabalho: ot.xx_dscwork?.trim() ?? null,
         anexos: ot.imalink_quantity ?? 0,
       },
+      resumo_checklist: { ok, nok, na, vazios, total: checklist.length },
       checklist: checklist.map((c: any) => ({
         tarefa: c.pm_task,
         estado: c.pm_state_name ?? null,
         notas: c.pm_obs?.trim() ?? null,
         data: c.xx_dt_rec ? c.xx_dt_rec.slice(0, 10) : null,
+        recurso: c.xx_respexc ?? null,
       })),
       exportado_em: visita.nextbitt_exportado_em,
     })
