@@ -302,10 +302,7 @@ export async function POST(req: NextRequest) {
           pm_state_name: valorNextbitt,
           xx_dt_rec: dataRealizacao,
         }
-        if (notas) {
-          patchBody.pm_obs = notas.slice(0, 400)
-          patchBody.xx_rela = notas.slice(0, 400)
-        }
+        if (notas) patchBody.pm_obs = notas.slice(0, 400)
         if (tecnicoEmpId) patchBody.xx_respexc = tecnicoEmpId
 
         try {

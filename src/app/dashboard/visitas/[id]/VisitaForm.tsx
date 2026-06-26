@@ -1077,13 +1077,6 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
                     </div>
                   )}
 
-                  {/* Debug temporário */}
-                  {dadosNextbitt._debug_checklist && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-2 text-xs font-mono text-yellow-800">
-                      pm_jobchs HTTP {dadosNextbitt._debug_checklist.http} | {dadosNextbitt._debug_checklist.items} items | keys: {dadosNextbitt._debug_checklist.raw_keys?.join(', ')}
-                    </div>
-                  )}
-
                   {/* Resumo checklist */}
                   {dadosNextbitt.resumo_checklist && (
                     <div className="grid grid-cols-4 gap-2 text-center">

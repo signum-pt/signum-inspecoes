@@ -74,11 +74,11 @@ export async function GET(req: NextRequest) {
     }
 
     // 3. Checklist completo com recurso
-    const chkUrl = `${BASE}/pm_jobchs?$filter=wo_id eq ${woId}&$select=pm_task,pm_state_name,pm_obs,xx_dt_rec,xx_respexc&$orderby=xx_seq`
-    const chkRes = await fetch(chkUrl, { headers })
-    const chkBody = chkRes.ok ? await chkRes.json() : null
-    const checklist = chkBody?.value ?? []
-    console.log(`[consultar] pm_jobchs HTTP ${chkRes.status} | url: ${chkUrl} | items: ${checklist.length} | raw keys: ${chkBody ? Object.keys(chkBody).join(',') : 'n/a'}`)
+    const chkRes = await fetch(
+      `${BASE}/pm_jobchs?$filter=wo_id eq ${woId}&$select=pm_task,pm_state_name,pm_obs,xx_dt_rec,xx_respexc&$orderby=xx_seq`,
+      { headers }
+    )
+    const checklist = chkRes.ok ? (await chkRes.json()).value ?? [] : []
 
     const nok = checklist.filter((c: any) => c.pm_state_name === 'NOK').length
     const ok = checklist.filter((c: any) => c.pm_state_name === 'OK').length
@@ -86,7 +86,6 @@ export async function GET(req: NextRequest) {
     const vazios = checklist.filter((c: any) => !c.pm_state_name).length
 
     return NextResponse.json({
-      _debug_checklist: { http: chkRes.status, url: chkUrl, items: checklist.length, raw_keys: chkBody ? Object.keys(chkBody) : [] },
       ot: {
         wo_id: ot.wo_id,
         wo_work: ot.wo_work,
