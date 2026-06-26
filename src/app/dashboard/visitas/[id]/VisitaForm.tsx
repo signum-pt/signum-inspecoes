@@ -1103,15 +1103,17 @@ function CampoInput({ tc, valor, respostas, secoes, onChange, disabled }: {
 
       {campo.tipo === 'escolha_multipla' && (
         <div className="flex flex-wrap gap-2">
-          {(campo.opcoes ?? []).map((op: string) => {
+          {(campo.opcoes ?? []).map((op: string, idx: number, arr: string[]) => {
             const selected = valor === op
-            const cor = op === 'OK'
+            const pos = arr.length === 1 ? 'mid'
+              : idx === 0 ? 'first'
+              : idx === arr.length - 1 ? 'last'
+              : 'mid'
+            const cor = pos === 'first'
               ? selected ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 text-gray-600 hover:border-green-300 hover:text-green-600'
-              : op === 'NOK'
+              : pos === 'last'
               ? selected ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 text-gray-600 hover:border-red-300 hover:text-red-600'
-              : op === 'Sem Aplicação'
-              ? selected ? 'border-yellow-400 bg-yellow-50 text-yellow-700' : 'border-gray-200 text-gray-600 hover:border-yellow-300 hover:text-yellow-600'
-              : selected ? 'border-[#D41317] bg-red-50 text-[#D41317]' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+              : selected ? 'border-yellow-400 bg-yellow-50 text-yellow-700' : 'border-gray-200 text-gray-600 hover:border-yellow-300 hover:text-yellow-600'
             return (
               <button key={op} type="button" disabled={disabled}
                 onClick={() => onChange(op)}
