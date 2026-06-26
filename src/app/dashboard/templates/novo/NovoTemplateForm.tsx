@@ -307,13 +307,10 @@ export default function NovoTemplateForm() {
     setModalSecaoId(null)
   }
 
-  function adicionarSeparador(secaoId: string, nome: string) {
-    const campo: Campo = {
-      id: `sep_${crypto.randomUUID()}`,
-      nome: nome || '—', chave: '', tipo: 'separador', unidade: '',
-      descricao: '', opcoes: [], sistema: false, ativo: true,
-      created_at: new Date().toISOString(),
-    }
+  async function adicionarSeparador(secaoId: string, nome: string) {
+    const { data: sepCampo } = await supabase.from('campos').select('*').eq('chave', 'separador').single()
+    if (!sepCampo) return
+    const campo: Campo = { ...sepCampo, nome: nome || '—' }
     setSecoes(s => s.map(x => x.id !== secaoId ? x : {
       ...x, campos: [...x.campos, { uid: crypto.randomUUID(), campo, obrigatorio: false, negrito: false, placeholder: '' }]
     }))
@@ -370,17 +367,9 @@ export default function NovoTemplateForm() {
         .from('template_secoes').insert({ template_id: template.id, titulo: s.titulo, ordem: si }).select().single()
       if (!secao) continue
       if (s.campos.length > 0) {
-        const rows = await Promise.all(s.campos.map(async (c, ci) => {
-          let campoId = c.campo.id
-          if (campoId.startsWith('sep_')) {
-            const { data: novo } = await supabase.from('campos').insert({
-              nome: c.campo.nome,
-              chave: `sep_${crypto.randomUUID().split('-')[0]}`,
-              tipo: 'separador', unidade: '', descricao: '', opcoes: [],
-            }).select().single()
-            campoId = novo?.id ?? ''
-          }
-          return { secao_id: secao.id, campo_id: campoId, obrigatorio: c.obrigatorio, negrito: c.negrito, ordem: ci, placeholder: c.placeholder, max_caracteres: c.maxCaracteres ?? null }
+        const rows = s.campos.map((c, ci) => ({
+          secao_id: secao.id, campo_id: c.campo.id, obrigatorio: c.obrigatorio,
+          negrito: c.negrito, ordem: ci, placeholder: c.placeholder, max_caracteres: c.maxCaracteres ?? null,
         }))
         await supabase.from('template_campos').insert(rows.filter(r => r.campo_id))
       }
