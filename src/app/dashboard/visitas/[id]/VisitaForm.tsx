@@ -1090,8 +1090,8 @@ function CampoInput({ tc, valor, respostas, secoes, onChange, disabled }: {
       {campo.tipo === 'observacao' && (
         <div>
           <textarea value={textoActual} onChange={e => onChange(e.target.value)}
-            disabled={disabled} rows={3} placeholder={tc.placeholder || ''}
-            maxLength={max ?? undefined} className={`${base} resize-none`} />
+            disabled={disabled} rows={5} placeholder={tc.placeholder || ''}
+            maxLength={max ?? undefined} className={`${base} resize-none min-h-[100px]`} />
           {max && <p className="text-xs text-right mt-1 text-gray-400">{textoActual.length}/{max}</p>}
         </div>
       )}
@@ -1103,15 +1103,23 @@ function CampoInput({ tc, valor, respostas, secoes, onChange, disabled }: {
 
       {campo.tipo === 'escolha_multipla' && (
         <div className="flex flex-wrap gap-2">
-          {(campo.opcoes ?? []).map((op: string) => (
-            <button key={op} type="button" disabled={disabled}
-              onClick={() => onChange(op)}
-              className={`px-4 py-3 lg:py-2 rounded-lg text-base lg:text-sm border transition-colors ${
-                valor === op ? 'border-[#D41317] bg-red-50 text-[#D41317] font-medium' : 'border-gray-200 text-gray-600 hover:border-gray-300'
-              } disabled:cursor-not-allowed`}>
-              {op}
-            </button>
-          ))}
+          {(campo.opcoes ?? []).map((op: string) => {
+            const selected = valor === op
+            const cor = op === 'OK'
+              ? selected ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 text-gray-600 hover:border-green-300 hover:text-green-600'
+              : op === 'NOK'
+              ? selected ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 text-gray-600 hover:border-red-300 hover:text-red-600'
+              : op === 'Sem Aplicação'
+              ? selected ? 'border-yellow-400 bg-yellow-50 text-yellow-700' : 'border-gray-200 text-gray-600 hover:border-yellow-300 hover:text-yellow-600'
+              : selected ? 'border-[#D41317] bg-red-50 text-[#D41317]' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+            return (
+              <button key={op} type="button" disabled={disabled}
+                onClick={() => onChange(op)}
+                className={`px-4 py-3 lg:py-2 rounded-lg text-base lg:text-sm border transition-colors ${cor} ${selected ? 'font-medium' : ''} disabled:cursor-not-allowed`}>
+                {op}
+              </button>
+            )
+          })}
         </div>
       )}
 
