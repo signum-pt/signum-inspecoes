@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
 
     // 3. Checklist completo com recurso
     const chkRes = await fetch(
-      `${BASE}/pm_jobchs?$filter=wo_id eq ${woId}&$select=pm_task,pm_state_name,pm_obs,xx_dt_rec,xx_respexc&$orderby=xx_seq`,
+      `${BASE}/pm_jobchs?$filter=wo_id eq ${woId}&$select=pm_task,pm_state_name,pm_obs,xx_rela,xx_dt_rec,xx_respexc&$orderby=xx_seq`,
       { headers }
     )
     const checklist = chkRes.ok ? (await chkRes.json()).value ?? [] : []
@@ -102,6 +102,7 @@ export async function GET(req: NextRequest) {
         tarefa: c.pm_task,
         estado: c.pm_state_name ?? null,
         notas: c.pm_obs?.trim() ?? null,
+        notas_rela: c.xx_rela?.trim() ?? null,
         data: c.xx_dt_rec ? c.xx_dt_rec.slice(0, 10) : null,
         recurso: c.xx_respexc ?? null,
       })),
