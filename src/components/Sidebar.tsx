@@ -35,6 +35,7 @@ const navItems = [
   { href: '/dashboard/utilizadores', label: 'Utilizadores', icon: Users, roles: ['admin'] },
   { href: '/dashboard/configuracoes', label: 'Configurações', icon: Settings, roles: ['admin'] },
   { href: '/dashboard/nextbitt', label: 'Nextbitt', icon: Plug, roles: ['admin'] },
+  { href: '/dashboard/nextbitt/planeamento', label: 'Planeamento MP', icon: Plug, roles: ['admin', 'escritorio'] },
 ]
 
 const roleLabel: Record<string, string> = {
