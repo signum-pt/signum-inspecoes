@@ -8,5 +8,7 @@ update template_campos
 set campo_id = (select id from campos where chave = 'separador')
 where campo_id in (select id from campos where chave like 'sep_%');
 
--- Apagar os separadores duplicados
-delete from campos where chave like 'sep_%';
+-- Apagar apenas os separadores duplicados que já não têm referências
+delete from campos
+where chave like 'sep_%'
+  and id not in (select campo_id from template_campos);
