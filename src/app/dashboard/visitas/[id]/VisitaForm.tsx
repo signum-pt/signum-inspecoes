@@ -66,9 +66,10 @@ interface Alteracao {
   novo: any
 }
 
-export default function VisitaForm({ visita, profile, secoes, respostasIniciais, fotosIniciais }: {
+export default function VisitaForm({ visita, profile, secoes, respostasIniciais, fotosIniciais, nextbittAtivo }: {
   visita: any; profile: any; secoes: any[]
   respostasIniciais: any[]; fotosIniciais: any[]
+  nextbittAtivo: boolean
 }) {
   const router = useRouter()
 
@@ -688,15 +689,17 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
                   </span>
                 )}
               </div>
-              <button
-                onClick={handleConsultarNextbitt}
-                className="flex items-center gap-2 border border-gray-200 text-gray-600 bg-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
-              >
-                <CheckCircle className="w-4 h-4" />
-                Verificar dados
-              </button>
+              {nextbittAtivo && (
+                <button
+                  onClick={handleConsultarNextbitt}
+                  className="flex items-center gap-2 border border-gray-200 text-gray-600 bg-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  Verificar dados
+                </button>
+              )}
             </div>
-          ) : (
+          ) : nextbittAtivo ? (
             <button
               onClick={() => setModalNextbitt(true)}
               className="flex items-center gap-2 border border-blue-300 text-blue-700 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors"
@@ -704,7 +707,7 @@ export default function VisitaForm({ visita, profile, secoes, respostasIniciais,
               <Send className="w-4 h-4" />
               Exportar para Nextbitt
             </button>
-          )
+          ) : null
         )}
         {podeEditar && estadoVisita === 'rascunho' && (
           <button onClick={() => avancarEstadoDireto('em_curso')}

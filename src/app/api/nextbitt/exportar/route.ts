@@ -61,6 +61,11 @@ async function extrairErroNextbitt(res: Response, contexto: string): Promise<str
   return detalhe ? `${contexto}: ${descricao}\nDetalhe: ${detalhe}` : `${contexto}: ${descricao}`
 }
 
+async function nextbittAtivo(supabase: any) {
+  const { data } = await supabase.from('configuracoes').select('valor').eq('chave', 'nextbitt_ativo').single()
+  return data?.valor === 'true'
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { visita_id } = await req.json()
@@ -69,6 +74,7 @@ export async function POST(req: NextRequest) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ erro: 'Não autenticado.' }, { status: 401 })
+    if (!await nextbittAtivo(supabase)) return NextResponse.json({ erro: 'Integração Nextbitt desativada.' }, { status: 403 })
 
     const { data: visita } = await supabase
       .from('visitas')

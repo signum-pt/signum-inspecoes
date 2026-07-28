@@ -10,6 +10,7 @@ export default function PerfilPage() {
   const [role, setRole] = useState('')
   const [carregando, setCarregando] = useState(true)
 
+  const [nextbittAtivo, setNextbittAtivo] = useState(false)
   const [nextbittEmpId, setNextbittEmpId] = useState('')
   const [guardandoNextbitt, setGuardandoNextbitt] = useState(false)
   const [guardadoNextbitt, setGuardadoNextbitt] = useState(false)
@@ -38,8 +39,12 @@ export default function PerfilPage() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return
       setEmail(user.email ?? '')
-      supabase.from('profiles').select('nome, role, nextbitt_emp_id').eq('id', user.id).single().then(({ data }) => {
+      Promise.all([
+        supabase.from('profiles').select('nome, role, nextbitt_emp_id').eq('id', user.id).single(),
+        supabase.from('configuracoes').select('valor').eq('chave', 'nextbitt_ativo').single(),
+      ]).then(([{ data }, { data: cfg }]) => {
         if (data) { setNome(data.nome); setRole(data.role); setNextbittEmpId(data.nextbitt_emp_id ? String(data.nextbitt_emp_id) : '') }
+        setNextbittAtivo(cfg?.valor === 'true')
         setCarregando(false)
       })
     })
@@ -159,7 +164,7 @@ export default function PerfilPage() {
       </div>
 
       {/* Integração Nextbitt */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+      {nextbittAtivo && <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
         <div className="flex items-center gap-3 mb-5 pb-4 border-b border-gray-100">
           <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
             <Link className="w-5 h-5 text-blue-500" />
@@ -193,7 +198,7 @@ export default function PerfilPage() {
             {guardadoNextbitt && <span className="text-sm text-green-600 flex items-center gap-1"><Check className="w-4 h-4" /> Guardado</span>}
           </div>
         </form>
-      </div>
+      </div>}
 
       {/* Alterar password */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">

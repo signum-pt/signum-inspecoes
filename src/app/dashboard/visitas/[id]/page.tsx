@@ -35,11 +35,12 @@ export default async function VisitaPage({ params }: { params: Promise<{ id: str
     .select('*')
     .eq('visita_id', id)
 
-  const { data: fotos } = await supabase
-    .from('visita_fotos')
-    .select('*')
-    .eq('visita_id', id)
-    .order('ordem')
+  const [{ data: fotos }, { data: cfgNextbitt }] = await Promise.all([
+    supabase.from('visita_fotos').select('*').eq('visita_id', id).order('ordem'),
+    supabase.from('configuracoes').select('valor').eq('chave', 'nextbitt_ativo').single(),
+  ])
+
+  const nextbittAtivo = cfgNextbitt?.valor === 'true'
 
   return (
     <Suspense fallback={<div className="p-8 text-sm text-gray-400">A carregar...</div>}>
@@ -49,6 +50,7 @@ export default async function VisitaPage({ params }: { params: Promise<{ id: str
         secoes={secoes}
         respostasIniciais={respostas ?? []}
         fotosIniciais={fotos ?? []}
+        nextbittAtivo={nextbittAtivo}
       />
     </Suspense>
   )

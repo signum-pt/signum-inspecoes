@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Save, Building2, Upload, Check } from 'lucide-react'
+import { Save, Building2, Upload, Check, Plug } from 'lucide-react'
 
 const CAMPOS_CONFIG = [
   { chave: 'empresa_nome',     label: 'Nome da empresa',  placeholder: 'Signum' },
@@ -21,6 +22,7 @@ const LOGOS_CONFIG = [
 ]
 
 export default function ConfiguracoesForm() {
+  const router = useRouter()
   const [valores, setValores] = useState<Record<string, string>>({})
   const [guardando, setGuardando] = useState(false)
   const [guardado, setGuardado] = useState(false)
@@ -28,15 +30,31 @@ export default function ConfiguracoesForm() {
   const [uploadingLogo, setUploadingLogo] = useState<string | null>(null)
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
+  const [nextbittAtivo, setNextbittAtivo] = useState(false)
+  const [guardandoToggle, setGuardandoToggle] = useState(false)
+
   useEffect(() => {
     const supabase = createClient()
     supabase.from('configuracoes').select('chave, valor').then(({ data }) => {
       const map: Record<string, string> = {}
       data?.forEach((r: any) => { map[r.chave] = r.valor })
       setValores(map)
+      setNextbittAtivo(map['nextbitt_ativo'] === 'true')
       setCarregando(false)
     })
   }, [])
+
+  async function handleToggleNextbitt(valor: boolean) {
+    setGuardandoToggle(true)
+    setNextbittAtivo(valor)
+    const supabase = createClient()
+    await supabase.from('configuracoes').upsert(
+      { chave: 'nextbitt_ativo', valor: valor ? 'true' : 'false' },
+      { onConflict: 'chave' }
+    )
+    setGuardandoToggle(false)
+    router.refresh()
+  }
 
   async function handleGuardar() {
     setGuardando(true)
@@ -119,6 +137,40 @@ export default function ConfiguracoesForm() {
             {guardando ? 'A guardar...' : 'Guardar'}
           </button>
           {guardado && <span className="text-sm text-green-600 flex items-center gap-1"><Check className="w-4 h-4" /> Guardado</span>}
+        </div>
+      </div>
+
+      {/* Integração Nextbitt */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+        <div className="flex items-center gap-3 pb-4 border-b border-gray-100 mb-5">
+          <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+            <Plug className="w-5 h-5 text-blue-500" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gray-900">Integração Nextbitt</p>
+            <p className="text-xs text-gray-400">Ativa ou desativa todas as funcionalidades de exportação para o Nextbitt</p>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-700">Exportação para Nextbitt</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {nextbittAtivo
+                ? 'Ativo — botões e separadores Nextbitt visíveis'
+                : 'Inativo — botões e separadores Nextbitt ocultados'}
+            </p>
+          </div>
+          <button
+            onClick={() => handleToggleNextbitt(!nextbittAtivo)}
+            disabled={guardandoToggle}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${
+              nextbittAtivo ? 'bg-blue-500' : 'bg-gray-200'
+            }`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+              nextbittAtivo ? 'translate-x-6' : 'translate-x-1'
+            }`} />
+          </button>
         </div>
       </div>
 

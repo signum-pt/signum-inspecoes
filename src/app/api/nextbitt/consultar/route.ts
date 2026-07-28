@@ -21,6 +21,11 @@ const SITUACOES: Record<string, string> = {
   '11': 'Aguarda programação', '12': 'Programado', '13': 'Em curso', '14': 'Fechado',
 }
 
+async function nextbittAtivo(supabase: any) {
+  const { data } = await supabase.from('configuracoes').select('valor').eq('chave', 'nextbitt_ativo').single()
+  return data?.valor === 'true'
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
@@ -28,6 +33,7 @@ export async function GET(req: NextRequest) {
     if (!visita_id) return NextResponse.json({ erro: 'Parâmetro visita_id em falta.' }, { status: 400 })
 
     const supabase = await createClient()
+    if (!await nextbittAtivo(supabase)) return NextResponse.json({ erro: 'Integração Nextbitt desativada.' }, { status: 403 })
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ erro: 'Não autenticado.' }, { status: 401 })
 

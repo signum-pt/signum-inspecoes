@@ -1,5 +1,7 @@
+'use server'
+
 import { createClient } from '@/lib/supabase/server'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, MapPin, Pencil, Phone, Mail, ClipboardList, Plus, Zap, Link2 } from 'lucide-react'
 
@@ -18,6 +20,14 @@ export default async function LojaDetalhe({ params }: { params: Promise<{ id: st
   const { data: { user } } = await supabase.auth.getUser()
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user!.id).single()
   const canEdit = profile?.role === 'admin' || profile?.role === 'tecnico'
+  const isAdmin = profile?.role === 'admin'
+
+  async function desativarLoja() {
+    'use server'
+    const sb = await createClient()
+    await sb.from('lojas').update({ ativo: false }).eq('id', id)
+    redirect('/dashboard/lojas')
+  }
 
   const { data: loja } = await supabase
     .from('lojas')
@@ -48,13 +58,24 @@ export default async function LojaDetalhe({ params }: { params: Promise<{ id: st
             <p className="text-gray-500 text-sm mt-0.5">{loja.entidades?.nome}</p>
           </div>
         </div>
-        {canEdit && (
-          <Link href={`/dashboard/lojas/${id}/editar`}
-            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
-            <Pencil className="w-3.5 h-3.5" />
-            Editar
-          </Link>
-        )}
+        <div className="flex items-center gap-2">
+          {canEdit && (
+            <Link href={`/dashboard/lojas/${id}/editar`}
+              className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
+              <Pencil className="w-3.5 h-3.5" />
+              Editar
+            </Link>
+          )}
+          {isAdmin && (
+            <form action={desativarLoja}>
+              <button type="submit"
+                className="flex items-center gap-2 text-sm text-red-500 hover:text-red-700 border border-red-200 hover:border-red-400 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                onClick={e => { if (!confirm('Desativar esta loja? Deixará de aparecer na lista mas o histórico de visitas é mantido.')) e.preventDefault() }}>
+                Desativar loja
+              </button>
+            </form>
+          )}
+        </div>
       </div>
 
       {/* Info da loja */}

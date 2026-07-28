@@ -21,6 +21,7 @@ import {
 
 interface SidebarProps {
   profile: Profile | null
+  nextbittAtivo: boolean
 }
 
 const navItems = [
@@ -44,7 +45,7 @@ const roleLabel: Record<string, string> = {
   escritorio: 'Escritório',
 }
 
-export default function Sidebar({ profile }: SidebarProps) {
+export default function Sidebar({ profile, nextbittAtivo }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
 
@@ -55,8 +56,12 @@ export default function Sidebar({ profile }: SidebarProps) {
     router.refresh()
   }
 
+  const NEXTBITT_HREFS = ['/dashboard/nextbitt', '/dashboard/nextbitt/planeamento']
+
   const visibleItems = navItems.filter(
-    (item) => !profile?.role || item.roles.includes(profile.role)
+    (item) =>
+      (!profile?.role || item.roles.includes(profile.role)) &&
+      (nextbittAtivo || !NEXTBITT_HREFS.includes(item.href))
   )
 
   return (

@@ -18,10 +18,16 @@ async function fetchEndpoint(base: string, token: string, path: string, top = 50
   }
 }
 
+async function nextbittAtivo(supabase: any) {
+  const { data } = await supabase.from('configuracoes').select('valor').eq('chave', 'nextbitt_ativo').single()
+  return data?.valor === 'true'
+}
+
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ erro: 'Não autenticado.' }, { status: 401 })
+  if (!await nextbittAtivo(supabase)) return NextResponse.json({ erro: 'Integração Nextbitt desativada.' }, { status: 403 })
 
   const { token, ambiente } = await req.json()
   const base = ambiente === 'prod' ? ODATA_PROD : ODATA_QA
