@@ -43,7 +43,7 @@ export default async function LojasInativasPage() {
         <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
           {lojas.map((loja) => (
             <div key={loja.id} className="flex items-center justify-between px-5 py-4 gap-4">
-              <div className="flex items-center gap-3 min-w-0">
+              <Link href={`/dashboard/lojas/${loja.id}`} className="flex items-center gap-3 min-w-0 flex-1 hover:opacity-75 transition-opacity">
                 <div className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <MapPin className="w-4 h-4 text-gray-400" />
                 </div>
@@ -54,7 +54,7 @@ export default async function LojasInativasPage() {
                     {loja.cidade ? ` · ${loja.cidade}` : ''}
                   </p>
                 </div>
-              </div>
+              </Link>
               <form action={reativarLoja.bind(null, loja.id)} className="flex-shrink-0">
                 <button type="submit"
                   className="flex items-center gap-2 text-sm font-medium text-green-600 border border-green-200 hover:border-green-400 hover:bg-green-50 px-3 py-1.5 rounded-lg transition-colors">

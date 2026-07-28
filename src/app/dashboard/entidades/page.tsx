@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { Plus, Building2 } from 'lucide-react'
+import { Plus, Building2, Archive } from 'lucide-react'
 
 export default async function EntidadesPage() {
   const supabase = await createClient()
@@ -14,18 +14,26 @@ export default async function EntidadesPage() {
 
   const isAdmin = profile?.role === 'admin'
 
-  const { data: entidades } = await supabase
-    .from('entidades')
-    .select(`*, lojas(count), templates(count)`)
-    .eq('ativo', true)
-    .order('nome')
+  const [{ data: entidades }, { count: inativas }] = await Promise.all([
+    supabase.from('entidades').select(`*, lojas(count), templates(count)`).eq('ativo', true).order('nome'),
+    supabase.from('entidades').select('*', { count: 'exact', head: true }).eq('ativo', false),
+  ])
 
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Lojas</h1>
-          <p className="text-gray-500 text-sm mt-1">Selecione uma marca para ver as suas lojas</p>
+          <p className="text-gray-500 text-sm mt-1 flex items-center gap-3">
+            Selecione uma marca para ver as suas lojas
+            {isAdmin && (inativas ?? 0) > 0 && (
+              <Link href="/dashboard/entidades/inativas"
+                className="flex items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors">
+                <Archive className="w-3.5 h-3.5" />
+                {inativas} inativa{inativas !== 1 ? 's' : ''}
+              </Link>
+            )}
+          </p>
         </div>
         {isAdmin && (
           <Link

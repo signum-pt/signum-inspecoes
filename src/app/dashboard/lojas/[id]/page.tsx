@@ -3,7 +3,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, MapPin, Pencil, Phone, Mail, ClipboardList, Plus, Zap, Link2 } from 'lucide-react'
+import { ArrowLeft, MapPin, Pencil, Phone, Mail, ClipboardList, Plus, Zap, Link2, Archive, RotateCcw } from 'lucide-react'
+import DesativarLojaButton from './DesativarLojaButton'
 
 const estadoLabel: Record<string, string> = {
   rascunho: 'Rascunho', em_curso: 'Em curso', concluida: 'Concluída', assinada: 'Assinada',
@@ -27,6 +28,13 @@ export default async function LojaDetalhe({ params }: { params: Promise<{ id: st
     const sb = await createClient()
     await sb.from('lojas').update({ ativo: false }).eq('id', id)
     redirect('/dashboard/lojas')
+  }
+
+  async function reativarLoja() {
+    'use server'
+    const sb = await createClient()
+    await sb.from('lojas').update({ ativo: true }).eq('id', id)
+    redirect(`/dashboard/lojas/${id}`)
   }
 
   const { data: loja } = await supabase
@@ -59,24 +67,35 @@ export default async function LojaDetalhe({ params }: { params: Promise<{ id: st
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {canEdit && (
-            <Link href={`/dashboard/lojas/${id}/editar`}
-              className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
-              <Pencil className="w-3.5 h-3.5" />
-              Editar
-            </Link>
-          )}
-          {isAdmin && (
-            <form action={desativarLoja}>
+          {loja.ativo ? (
+            <>
+              {canEdit && (
+                <Link href={`/dashboard/lojas/${id}/editar`}
+                  className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
+                  <Pencil className="w-3.5 h-3.5" />
+                  Editar
+                </Link>
+              )}
+              {isAdmin && <DesativarLojaButton formAction={desativarLoja} />}
+            </>
+          ) : isAdmin ? (
+            <form action={reativarLoja}>
               <button type="submit"
-                className="flex items-center gap-2 text-sm text-red-500 hover:text-red-700 border border-red-200 hover:border-red-400 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
-                onClick={e => { if (!confirm('Desativar esta loja? Deixará de aparecer na lista mas o histórico de visitas é mantido.')) e.preventDefault() }}>
-                Desativar loja
+                className="flex items-center gap-2 text-sm text-green-600 border border-green-200 hover:border-green-400 px-3 py-1.5 rounded-lg hover:bg-green-50 transition-colors">
+                <RotateCcw className="w-3.5 h-3.5" />
+                Reativar loja
               </button>
             </form>
-          )}
+          ) : null}
         </div>
       </div>
+
+      {!loja.ativo && (
+        <div className="mb-6 flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-sm">
+          <Archive className="w-4 h-4 flex-shrink-0" />
+          <span>Esta loja está inativa e não aparece na listagem geral. O histórico de visitas está preservado.</span>
+        </div>
+      )}
 
       {/* Info da loja */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6 grid grid-cols-2 gap-4">
@@ -167,7 +186,7 @@ export default async function LojaDetalhe({ params }: { params: Promise<{ id: st
           <ClipboardList className="w-4 h-4 text-gray-400" />
           Visitas
         </h2>
-        {canEdit && (
+        {canEdit && loja.ativo && (
           <Link href={`/dashboard/visitas/nova?loja_id=${id}`}
             className="flex items-center gap-1.5 text-xs font-medium hover:underline" style={{ color: '#D41317' }}>
             <Plus className="w-3.5 h-3.5" />
@@ -181,7 +200,7 @@ export default async function LojaDetalhe({ params }: { params: Promise<{ id: st
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 text-center py-10 text-gray-400">
           <p className="text-sm">Ainda não há visitas para esta loja.</p>
-          {canEdit && (
+          {canEdit && loja.ativo && (
             <Link href={`/dashboard/visitas/nova?loja_id=${id}`} className="text-sm hover:underline mt-1 inline-block" style={{ color: '#D41317' }}>
               Criar primeira visita
             </Link>

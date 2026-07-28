@@ -10,7 +10,7 @@ export default async function LojasPage() {
   const isAdmin = profile?.role === 'admin'
 
   const [{ data: lojas }, { count: inativas }] = await Promise.all([
-    supabase.from('lojas').select('*').eq('ativo', true).order('nome'),
+    supabase.from('lojas').select('*, entidades!inner(ativo)').eq('ativo', true).eq('entidades.ativo', true).order('nome'),
     supabase.from('lojas').select('*', { count: 'exact', head: true }).eq('ativo', false),
   ])
 

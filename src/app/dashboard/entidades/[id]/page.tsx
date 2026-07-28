@@ -1,7 +1,10 @@
+'use server'
+
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { ArrowLeft, Building2, MapPin, FileText, Plus, Pencil } from 'lucide-react'
-import { notFound } from 'next/navigation'
+import { ArrowLeft, Building2, MapPin, FileText, Plus, Pencil, Archive } from 'lucide-react'
+import { notFound, redirect } from 'next/navigation'
+import DesativarEntidadeButton from './DesativarEntidadeButton'
 
 export default async function EntidadeDetalhe({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -25,10 +28,27 @@ export default async function EntidadeDetalhe({ params }: { params: Promise<{ id
 
   if (!entidade) notFound()
 
-  const [{ data: lojas }, { data: templates }] = await Promise.all([
-    supabase.from('lojas').select('*').eq('entidade_id', id).eq('ativo', true).order('nome'),
+  // Se entidade inativa, admin vê todas as lojas para consulta histórica
+  const lojasQuery = supabase.from('lojas').select('*').eq('entidade_id', id).order('nome')
+  const [{ data: lojas }, { data: templates }, { count: lojasInativas }] = await Promise.all([
+    entidade.ativo ? lojasQuery.eq('ativo', true) : lojasQuery,
     supabase.from('templates').select('*').eq('entidade_id', id).order('nome'),
+    supabase.from('lojas').select('*', { count: 'exact', head: true }).eq('entidade_id', id).eq('ativo', false),
   ])
+
+  async function desativarEntidade() {
+    'use server'
+    const sb = await createClient()
+    await sb.from('entidades').update({ ativo: false }).eq('id', id)
+    redirect('/dashboard/entidades')
+  }
+
+  async function reativarEntidade() {
+    'use server'
+    const sb = await createClient()
+    await sb.from('entidades').update({ ativo: true }).eq('id', id)
+    redirect(`/dashboard/entidades/${id}`)
+  }
 
   return (
     <div className="p-8">
@@ -49,15 +69,36 @@ export default async function EntidadeDetalhe({ params }: { params: Promise<{ id
           </div>
         </div>
         {isAdmin && (
-          <Link
-            href={`/dashboard/entidades/${id}/editar`}
-            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <Pencil className="w-3.5 h-3.5" />
-            Editar
-          </Link>
+          <div className="flex items-center gap-2">
+            {entidade.ativo ? (
+              <>
+                <Link
+                  href={`/dashboard/entidades/${id}/editar`}
+                  className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  Editar
+                </Link>
+                <DesativarEntidadeButton formAction={desativarEntidade} />
+              </>
+            ) : (
+              <form action={reativarEntidade}>
+                <button type="submit"
+                  className="flex items-center gap-2 text-sm text-green-600 border border-green-200 hover:border-green-400 px-3 py-1.5 rounded-lg hover:bg-green-50 transition-colors">
+                  Reativar entidade
+                </button>
+              </form>
+            )}
+          </div>
         )}
       </div>
+
+      {!entidade.ativo && (
+        <div className="mb-6 flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-sm">
+          <Archive className="w-4 h-4 flex-shrink-0" />
+          <span>Esta entidade está inativa. As lojas não aparecem na listagem geral, mas o histórico de visitas está preservado.</span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Lojas */}
@@ -66,6 +107,13 @@ export default async function EntidadeDetalhe({ params }: { params: Promise<{ id
             <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
               <MapPin className="w-4 h-4 text-gray-400" />
               Lojas ({lojas?.length ?? 0})
+              {isAdmin && entidade.ativo && (lojasInativas ?? 0) > 0 && (
+                <Link href={`/dashboard/lojas/inativas`}
+                  className="flex items-center gap-1 text-xs font-normal text-gray-400 hover:text-gray-600 ml-1">
+                  <Archive className="w-3 h-3" />
+                  {lojasInativas} inativa{lojasInativas !== 1 ? 's' : ''}
+                </Link>
+              )}
             </h2>
             {canEdit && (
               <Link
