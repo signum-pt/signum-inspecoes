@@ -1,22 +1,34 @@
 ﻿import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { Plus, MapPin } from 'lucide-react'
+import { Plus, MapPin, Archive } from 'lucide-react'
 
 export default async function LojasPage() {
   const supabase = await createClient()
 
-  const { data: lojas } = await supabase
-    .from('lojas')
-    .select('*')
-    .eq('ativo', true)
-    .order('nome')
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user!.id).single()
+  const isAdmin = profile?.role === 'admin'
+
+  const [{ data: lojas }, { count: inativas }] = await Promise.all([
+    supabase.from('lojas').select('*').eq('ativo', true).order('nome'),
+    supabase.from('lojas').select('*', { count: 'exact', head: true }).eq('ativo', false),
+  ])
 
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Lojas</h1>
-          <p className="text-gray-500 text-sm mt-1">{lojas?.length ?? 0} lojas ativas</p>
+          <p className="text-gray-500 text-sm mt-1 flex items-center gap-3">
+            {lojas?.length ?? 0} lojas ativas
+            {isAdmin && (inativas ?? 0) > 0 && (
+              <Link href="/dashboard/lojas/inativas"
+                className="flex items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors">
+                <Archive className="w-3.5 h-3.5" />
+                {inativas} inativa{inativas !== 1 ? 's' : ''}
+              </Link>
+            )}
+          </p>
         </div>
         <Link
           href="/dashboard/lojas/nova"
