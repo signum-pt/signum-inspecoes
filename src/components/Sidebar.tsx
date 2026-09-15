@@ -36,20 +36,20 @@ type NavItem = {
 }
 
 const navItems: NavItem[] = [
-  // Explorações — trabalho de campo
+  // Explorações — trabalho de campo e operações
   { href: '/dashboard', label: 'Início', icon: LayoutDashboard, roles: ['admin', 'tecnico', 'escritorio'], section: 'exploracoes' },
   { href: '/dashboard/entidades', label: 'Lojas', icon: Store, roles: ['admin', 'tecnico', 'escritorio'], section: 'exploracoes' },
   { href: '/dashboard/visitas', label: 'Relatórios', icon: ClipboardList, roles: ['admin', 'tecnico', 'escritorio'], section: 'exploracoes' },
   { href: '/dashboard/calendario', label: 'Calendário', icon: Calendar, roles: ['admin', 'tecnico', 'escritorio'], section: 'exploracoes' },
-  // Gestão — escritório e processos
+  { href: '/dashboard/equipa', label: 'Equipa', icon: MapPin, roles: ['admin', 'escritorio'], section: 'exploracoes' },
+  { href: '/dashboard/nextbitt/planeamento', label: 'Planeamento MP', icon: Plug, roles: ['admin', 'escritorio'], section: 'exploracoes' },
+  { href: '/dashboard/campos', label: 'Campos globais', icon: Database, roles: ['admin'], section: 'exploracoes' },
+  { href: '/dashboard/secoes', label: 'Secções globais', icon: Building2, roles: ['admin'], section: 'exploracoes' },
+  { href: '/dashboard/templates', label: 'Templates', icon: FileText, roles: ['admin'], section: 'exploracoes' },
+  { href: '/dashboard/nextbitt', label: 'Nextbitt', icon: Plug, roles: ['admin'], section: 'exploracoes' },
+  // Gestão — processos e administração
   { href: '/dashboard/processos', label: 'Processos', icon: FolderOpen, roles: ['admin', 'tecnico', 'escritorio'], section: 'gestao' },
-  { href: '/dashboard/equipa', label: 'Equipa', icon: MapPin, roles: ['admin', 'escritorio'], section: 'gestao' },
-  { href: '/dashboard/nextbitt/planeamento', label: 'Planeamento MP', icon: Plug, roles: ['admin', 'escritorio'], section: 'gestao' },
   { href: '/dashboard/utilizadores', label: 'Utilizadores', icon: Users, roles: ['admin'], section: 'gestao' },
-  { href: '/dashboard/campos', label: 'Campos globais', icon: Database, roles: ['admin'], section: 'gestao' },
-  { href: '/dashboard/secoes', label: 'Secções globais', icon: Building2, roles: ['admin'], section: 'gestao' },
-  { href: '/dashboard/templates', label: 'Templates', icon: FileText, roles: ['admin'], section: 'gestao' },
-  { href: '/dashboard/nextbitt', label: 'Nextbitt', icon: Plug, roles: ['admin'], section: 'gestao' },
   { href: '/dashboard/configuracoes', label: 'Configurações', icon: Settings, roles: ['admin'], section: 'gestao' },
 ]
 
