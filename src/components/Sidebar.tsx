@@ -17,6 +17,7 @@ import {
   Settings,
   LogOut,
   Plug,
+  FolderOpen,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -26,6 +27,7 @@ interface SidebarProps {
 
 const navItems = [
   { href: '/dashboard', label: 'Início', icon: LayoutDashboard, roles: ['admin', 'tecnico', 'escritorio'] },
+  { href: '/dashboard/processos', label: 'Processos', icon: FolderOpen, roles: ['admin', 'tecnico', 'escritorio'] },
   { href: '/dashboard/entidades', label: 'Lojas', icon: Store, roles: ['admin', 'tecnico', 'escritorio'] },
   { href: '/dashboard/visitas', label: 'Relatórios', icon: ClipboardList, roles: ['admin', 'tecnico', 'escritorio'] },
   { href: '/dashboard/campos', label: 'Campos globais', icon: Database, roles: ['admin'] },
