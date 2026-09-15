@@ -20,6 +20,7 @@ import {
   FolderOpen,
   Compass,
   Briefcase,
+  Handshake,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -48,6 +49,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/templates', label: 'Templates', icon: FileText, roles: ['admin'], section: 'exploracoes' },
   { href: '/dashboard/nextbitt', label: 'Nextbitt', icon: Plug, roles: ['admin'], section: 'exploracoes' },
   // Gestão — processos e administração
+  { href: '/dashboard/negocios', label: 'Negócios', icon: Handshake, roles: ['admin', 'escritorio'], section: 'gestao' },
   { href: '/dashboard/processos', label: 'Processos', icon: FolderOpen, roles: ['admin', 'tecnico', 'escritorio'], section: 'gestao' },
   { href: '/dashboard/utilizadores', label: 'Utilizadores', icon: Users, roles: ['admin'], section: 'gestao' },
   { href: '/dashboard/configuracoes', label: 'Configurações', icon: Settings, roles: ['admin'], section: 'gestao' },
