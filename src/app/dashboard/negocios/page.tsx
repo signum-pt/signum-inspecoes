@@ -9,6 +9,13 @@ export default async function NegociosPage() {
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user!.id).single()
   const canEdit = ['admin', 'escritorio'].includes(profile?.role ?? '')
 
+  const { data: processos } = await supabase
+    .from('processos')
+    .select('n_processo, designacao, concelho')
+    .eq('aberto', true)
+    .order('n_processo', { ascending: false })
+    .limit(200)
+
   const { data: negocios } = await supabase
     .from('negocios')
     .select(`
@@ -40,7 +47,7 @@ export default async function NegociosPage() {
         {canEdit && <NovoNegocioButton />}
       </div>
 
-      <KanbanBoard negocios={(negocios as any) ?? []} canEdit={canEdit} />
+      <KanbanBoard negocios={(negocios as any) ?? []} canEdit={canEdit} processos={(processos as any) ?? []} />
     </div>
   )
 }

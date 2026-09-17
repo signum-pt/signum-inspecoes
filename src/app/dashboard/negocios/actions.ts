@@ -79,6 +79,117 @@ export async function criarNegocio(formData: FormData) {
   return { ok: true, id: data.id }
 }
 
+export async function aprovarNegocio(negocioId: string, opcoes: {
+  criarProcesso: boolean
+  nProcessoExistente?: number
+  designacao: string
+  concelho?: string
+  primeiro_ano?: number
+}) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { ok: false, error: 'Não autenticado' }
+
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  if (!['admin', 'escritorio'].includes(profile?.role ?? '')) return { ok: false, error: 'Sem permissão' }
+
+  // Buscar o negócio e os seus serviços
+  const { data: negocio } = await supabase
+    .from('negocios')
+    .select('id, designacao, requerente_id, loja_id, concelho, status, negocio_servicos(id, servico_id, descricao, quantidade, valor_unit)')
+    .eq('id', negocioId)
+    .single()
+
+  if (!negocio) return { ok: false, error: 'Negócio não encontrado' }
+  if (negocio.status !== 'pendente') return { ok: false, error: 'Negócio já não está pendente' }
+
+  let nProcesso: number
+
+  if (opcoes.criarProcesso) {
+    // Criar novo processo
+    const { data: proc, error: procErr } = await supabase
+      .from('processos')
+      .insert({
+        designacao: opcoes.designacao.trim(),
+        concelho: opcoes.concelho || negocio.concelho || null,
+        primeiro_ano: opcoes.primeiro_ano || new Date().getFullYear(),
+        requerente_id: negocio.requerente_id || null,
+        loja_id: negocio.loja_id || null,
+        aberto: true,
+      })
+      .select('n_processo')
+      .single()
+
+    if (procErr || !proc) return { ok: false, error: procErr?.message ?? 'Erro ao criar processo' }
+    nProcesso = proc.n_processo
+  } else {
+    if (!opcoes.nProcessoExistente) return { ok: false, error: 'Processo não selecionado' }
+    nProcesso = opcoes.nProcessoExistente
+  }
+
+  // Converter negocio_servicos em trabalhos
+  const servicos = (negocio as any).negocio_servicos ?? []
+  if (servicos.length > 0) {
+    const trabalhos = servicos.map((s: any) => ({
+      n_processo: nProcesso,
+      especialidade: null as string | null,
+      descricao: s.descricao || null,
+      estado: 'a fazer',
+      ano: new Date().getFullYear(),
+      trabalho_id: s.id,
+    }))
+
+    // Buscar nome da especialidade via servico_id
+    const servicoIds = servicos.filter((s: any) => s.servico_id).map((s: any) => s.servico_id)
+    if (servicoIds.length > 0) {
+      const { data: servicosData } = await supabase
+        .from('servicos')
+        .select('id, nome')
+        .in('id', servicoIds)
+
+      const mapaServicos: Record<string, string> = {}
+      for (const sv of servicosData ?? []) mapaServicos[sv.id] = sv.nome
+
+      for (const t of trabalhos) {
+        const srv = servicos.find((s: any) => s.id === t.trabalho_id)
+        if (srv?.servico_id) t.especialidade = mapaServicos[srv.servico_id] ?? null
+      }
+    }
+
+    const { error: trabErr } = await supabase.from('trabalhos').insert(
+      trabalhos.map((t: any) => ({
+        n_processo: t.n_processo,
+        especialidade: t.especialidade,
+        descricao: t.descricao,
+        estado: t.estado,
+        ano: t.ano,
+      }))
+    )
+    if (trabErr) return { ok: false, error: trabErr.message }
+  }
+
+  // Atualizar negócio: status + n_processo
+  const { error: negErr } = await supabase
+    .from('negocios')
+    .update({ status: 'em_execucao', n_processo: nProcesso })
+    .eq('id', negocioId)
+
+  if (negErr) return { ok: false, error: negErr.message }
+
+  await supabase.from('negocio_historico').insert({
+    negocio_id: negocioId,
+    status_anterior: 'pendente',
+    status_novo: 'em_execucao',
+    nota: `Aprovado — Processo #${nProcesso}`,
+    autor_id: user.id,
+  })
+
+  revalidatePath('/dashboard/negocios')
+  revalidatePath('/dashboard/trabalhos')
+  revalidatePath(`/dashboard/processos/${nProcesso}`)
+  return { ok: true, nProcesso }
+}
+
 export async function criarNegocioCompleto(formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

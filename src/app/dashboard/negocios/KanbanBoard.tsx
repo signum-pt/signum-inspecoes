@@ -8,6 +8,7 @@ import {
   CheckCircle2, Clock, AlertTriangle, Ban, Loader2,
 } from 'lucide-react'
 import { atualizarStatusNegocio } from './actions'
+import AprovarNegocioModal from './AprovarNegocioModal'
 
 type Status = 'pendente' | 'em_execucao' | 'concluido' | 'faturar' | 'faturado' | 'cancelado'
 
@@ -58,11 +59,14 @@ const CONFIRMAR: Partial<Record<string, string>> = {
   'concluido→em_execucao': 'Reabrir este negócio e passar de volta a Em Execução?',
 }
 
-export default function KanbanBoard({ negocios: initial, canEdit }: { negocios: Negocio[]; canEdit: boolean }) {
+type Processo = { n_processo: number; designacao: string; concelho: string | null }
+
+export default function KanbanBoard({ negocios: initial, canEdit, processos }: { negocios: Negocio[]; canEdit: boolean; processos: Processo[] }) {
   const router = useRouter()
   const [negocios, setNegocios] = useState<Negocio[]>(initial)
   const [loading, setLoading] = useState<string | null>(null)
   const [confirm, setConfirm] = useState<{ id: string; novoStatus: Status; msg: string } | null>(null)
+  const [aprovar, setAprovar] = useState<Negocio | null>(null)
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
 
   const dragId = useRef<string | null>(null)
@@ -75,6 +79,11 @@ export default function KanbanBoard({ negocios: initial, canEdit }: { negocios: 
 
   async function moverNegocio(id: string, novoStatus: Status) {
     const chave = `${dragStatus.current}→${novoStatus}`
+    // Aprovação: abre modal dedicado
+    if (chave === 'pendente→em_execucao') {
+      const neg = negocios.find(n => n.id === id)
+      if (neg) { setAprovar(neg); return }
+    }
     if (CONFIRMAR[chave]) {
       setConfirm({ id, novoStatus, msg: CONFIRMAR[chave]! })
       return
@@ -114,6 +123,21 @@ export default function KanbanBoard({ negocios: initial, canEdit }: { negocios: 
         }`}>
           {toast.msg}
         </div>
+      )}
+
+      {/* Modal aprovação */}
+      {aprovar && (
+        <AprovarNegocioModal
+          negocio={aprovar}
+          processos={processos}
+          onClose={() => setAprovar(null)}
+          onSuccess={(nProcesso) => {
+            setNegocios(prev => prev.map(n => n.id === aprovar.id ? { ...n, status: 'em_execucao', n_processo: nProcesso } : n))
+            setAprovar(null)
+            showToast(`Aprovado — Processo #${nProcesso} criado`)
+            router.refresh()
+          }}
+        />
       )}
 
       {/* Modal confirmação */}
