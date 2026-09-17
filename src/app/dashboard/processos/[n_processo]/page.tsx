@@ -3,26 +3,11 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft, FolderOpen, MapPin, User, Briefcase,
-  CheckCircle2, Clock, AlertCircle, Loader2, Ban, ChevronRight,
+  CheckCircle2, Clock,
 } from 'lucide-react'
-
-const estadoCor: Record<string, string> = {
-  'a fazer':   'bg-gray-100 text-gray-600',
-  'urgente':   'bg-red-100 text-red-700',
-  'em curso':  'bg-blue-100 text-blue-700',
-  'pendente':  'bg-amber-100 text-amber-700',
-  'concluído': 'bg-green-100 text-green-700',
-  'cancelado': 'bg-gray-100 text-gray-400',
-}
-
-const estadoIcon: Record<string, any> = {
-  'a fazer':   Clock,
-  'urgente':   AlertCircle,
-  'em curso':  Loader2,
-  'pendente':  Loader2,
-  'concluído': CheckCircle2,
-  'cancelado': Ban,
-}
+import ProcessoInfoEdit from './ProcessoInfoEdit'
+import NotasSection from './NotasSection'
+import TrabalhoRow from './TrabalhoRow'
 
 export default async function ProcessoDetalhe({
   params,
@@ -37,6 +22,7 @@ export default async function ProcessoDetalhe({
 
   const { data: { user } } = await supabase.auth.getUser()
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user!.id).single()
+  const canEdit = ['admin', 'escritorio'].includes(profile?.role ?? '')
   const isAdmin = profile?.role === 'admin'
 
   const [
@@ -110,7 +96,7 @@ export default async function ProcessoDetalhe({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Coluna principal — trabalhos */}
+        {/* Coluna principal — trabalhos + notas */}
         <div className="lg:col-span-2 space-y-6">
 
           {/* Trabalhos por ano */}
@@ -126,31 +112,9 @@ export default async function ProcessoDetalhe({
                   <div key={ano}>
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">{ano || 'Sem ano'}</p>
                     <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-                      {trabalhosPorAno[ano].map((t) => {
-                        const Icon = estadoIcon[t.estado] ?? Clock
-                        const cor = estadoCor[t.estado] ?? 'bg-gray-100 text-gray-500'
-                        return (
-                          <div key={t.id} className="flex items-center gap-3 px-4 py-3">
-                            <span className={`flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full flex-shrink-0 ${cor}`}>
-                              <Icon className="w-3 h-3" />
-                              {t.estado}
-                            </span>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-gray-800 truncate">
-                                {t.especialidade || '—'}
-                              </p>
-                              {t.profiles?.nome && (
-                                <p className="text-xs text-gray-400">{t.profiles.nome}</p>
-                              )}
-                            </div>
-                            {t.prazo && (
-                              <p className="text-xs text-gray-400 flex-shrink-0">
-                                {new Date(t.prazo).toLocaleDateString('pt-PT')}
-                              </p>
-                            )}
-                          </div>
-                        )
-                      })}
+                      {trabalhosPorAno[ano].map((t) => (
+                        <TrabalhoRow key={t.id} trabalho={t} nProcesso={n} canEdit={canEdit} />
+                      ))}
                     </div>
                   </div>
                 ))}
@@ -164,30 +128,12 @@ export default async function ProcessoDetalhe({
           </div>
 
           {/* Notas */}
-          <div>
-            <h2 className="text-sm font-semibold text-gray-900 mb-3">Notas</h2>
-            {notas && notas.length > 0 ? (
-              <div className="space-y-2">
-                {notas.map((nota) => (
-                  <div key={nota.id} className="bg-white rounded-xl border border-gray-200 px-4 py-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium text-gray-700">{nota.profiles?.nome}</span>
-                      <span className="text-xs text-gray-400">
-                        {new Date(nota.criado_em).toLocaleDateString('pt-PT', {
-                          day: '2-digit', month: 'short', year: 'numeric',
-                        })}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{nota.nota}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-gray-400 bg-white rounded-xl border border-dashed border-gray-200 py-6 text-center">
-                Sem notas.
-              </p>
-            )}
-          </div>
+          <NotasSection
+            nProcesso={n}
+            notas={(notas ?? []) as any}
+            userId={user!.id}
+            isAdmin={isAdmin}
+          />
         </div>
 
         {/* Coluna lateral — info */}
@@ -231,7 +177,6 @@ export default async function ProcessoDetalhe({
                     <p className="text-xs text-gray-400">{processo.lojas.entidades.nome}</p>
                   )}
                 </div>
-                <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-red-400 flex-shrink-0" />
               </Link>
             </div>
           )}
@@ -259,13 +204,25 @@ export default async function ProcessoDetalhe({
             </div>
           </div>
 
-          {/* Notas do processo (campo texto livre) */}
+          {/* Nota interna */}
           {processo.notas && (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
               <p className="text-xs font-semibold text-amber-700 mb-1">Nota</p>
               <p className="text-sm text-amber-900 whitespace-pre-wrap">{processo.notas}</p>
             </div>
           )}
+
+          {/* Editar campos do processo */}
+          <ProcessoInfoEdit
+            nProcesso={n}
+            initial={{
+              designacao: processo.designacao ?? '',
+              concelho: processo.concelho ?? '',
+              aberto: processo.aberto ?? true,
+              notas: processo.notas ?? '',
+            }}
+            canEdit={canEdit}
+          />
         </div>
       </div>
     </div>
