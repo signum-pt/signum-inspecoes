@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Plus, Trash2, Loader2, ChevronDown } from 'lucide-react'
-import { criarNegocioCompleto } from './actions'
+import { criarNegocioCompleto } from '../actions'
 
 type Requerente = { id: string; nome: string; nif: string | null; email: string | null; telefone: string | null; morada: string | null; cod_postal: string | null; localidade: string | null }
 type Loja = { id: string; nome: string; entidades: { nome: string } | null }
