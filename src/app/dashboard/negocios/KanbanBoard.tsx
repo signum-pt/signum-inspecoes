@@ -20,7 +20,7 @@ type Negocio = {
   n_processo: number | null
   criado_em: string
   requerentes: { nome: string } | null
-  lojas: { nome: string; entidades: { nome: string } | null } | null
+  lojas: { nome: string; entidades: { nome: string }[] | null } | null
   negocio_servicos: { count: number }[]
 }
 

@@ -7,7 +7,7 @@ import { ArrowLeft, Plus, Trash2, Loader2, ChevronDown } from 'lucide-react'
 import { criarNegocioCompleto } from '../actions'
 
 type Requerente = { id: string; nome: string; nif: string | null; email: string | null; telefone: string | null; morada: string | null; cod_postal: string | null; localidade: string | null }
-type Loja = { id: string; nome: string; entidades: { nome: string } | null }
+type Loja = { id: string; nome: string; entidades: { nome: string }[] | null }
 type Servico = { id: string; nome: string }
 type Processo = { n_processo: number; designacao: string; concelho: string | null; requerentes: { nome: string } | null }
 type Tecnico = { id: string; nome: string }
@@ -204,7 +204,7 @@ export default function NovoNegocioForm({ requerentes, lojas, servicos, processo
                 <option value="">Nenhuma</option>
                 {lojas.map(l => (
                   <option key={l.id} value={l.id}>
-                    {l.nome}{l.entidades ? ` — ${l.entidades.nome}` : ''}
+                    {l.nome}{l.entidades?.[0] ? ` — ${l.entidades[0].nome}` : ''}
                   </option>
                 ))}
               </select>
