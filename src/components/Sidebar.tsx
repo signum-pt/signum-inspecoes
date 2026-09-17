@@ -21,6 +21,7 @@ import {
   Compass,
   Briefcase,
   Handshake,
+  Wrench,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -42,6 +43,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/entidades', label: 'Lojas', icon: Store, roles: ['admin', 'tecnico', 'escritorio'], section: 'exploracoes' },
   { href: '/dashboard/visitas', label: 'Relatórios', icon: ClipboardList, roles: ['admin', 'tecnico', 'escritorio'], section: 'exploracoes' },
   { href: '/dashboard/calendario', label: 'Calendário', icon: Calendar, roles: ['admin', 'tecnico', 'escritorio'], section: 'exploracoes' },
+  { href: '/dashboard/trabalhos', label: 'Trabalhos', icon: Wrench, roles: ['admin', 'tecnico', 'escritorio'], section: 'exploracoes' },
   { href: '/dashboard/equipa', label: 'Equipa', icon: MapPin, roles: ['admin', 'escritorio'], section: 'exploracoes' },
   { href: '/dashboard/nextbitt/planeamento', label: 'Planeamento MP', icon: Plug, roles: ['admin', 'escritorio'], section: 'exploracoes' },
   { href: '/dashboard/campos', label: 'Campos globais', icon: Database, roles: ['admin'], section: 'exploracoes' },
