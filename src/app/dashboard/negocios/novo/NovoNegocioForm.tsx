@@ -9,7 +9,7 @@ import { criarNegocioCompleto } from '../actions'
 type Requerente = { id: string; nome: string; nif: string | null; email: string | null; telefone: string | null; morada: string | null; cod_postal: string | null; localidade: string | null }
 type Loja = { id: string; nome: string; entidades: { nome: string }[] | null }
 type Servico = { id: string; nome: string }
-type Processo = { n_processo: number; designacao: string; concelho: string | null; requerentes: { nome: string } | null }
+type Processo = { n_processo: number; designacao: string; concelho: string | null; requerentes: { nome: string }[] | null }
 type Tecnico = { id: string; nome: string }
 
 type LinhaServico = {
@@ -127,7 +127,7 @@ export default function NovoNegocioForm({ requerentes, lojas, servicos, processo
                 <option value="">Selecionar…</option>
                 {processos.map(p => (
                   <option key={p.n_processo} value={p.n_processo}>
-                    #{p.n_processo} — {p.designacao}{p.requerentes ? ` (${p.requerentes.nome})` : ''}{p.concelho ? ` · ${p.concelho}` : ''}
+                    #{p.n_processo} — {p.designacao}{p.requerentes?.[0] ? ` (${p.requerentes[0].nome})` : ''}{p.concelho ? ` · ${p.concelho}` : ''}
                   </option>
                 ))}
               </select>
