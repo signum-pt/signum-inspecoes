@@ -8,6 +8,7 @@ import {
 import ProcessoInfoEdit from './ProcessoInfoEdit'
 import NotasSection from './NotasSection'
 import TrabalhoRow from './TrabalhoRow'
+import AdicionarTrabalhoForm from './AdicionarTrabalhoForm'
 
 export default async function ProcessoDetalhe({
   params,
@@ -29,6 +30,7 @@ export default async function ProcessoDetalhe({
     { data: processo },
     { data: trabalhos },
     { data: notas },
+    { data: tecnicos },
   ] = await Promise.all([
     supabase
       .from('processos')
@@ -46,6 +48,7 @@ export default async function ProcessoDetalhe({
       .select('*, profiles(nome)')
       .eq('n_processo', n)
       .order('criado_em', { ascending: true }),
+    supabase.from('profiles').select('id, nome').eq('role', 'tecnico').eq('ativo', true).order('nome'),
   ])
 
   if (!processo) notFound()
@@ -125,6 +128,7 @@ export default async function ProcessoDetalhe({
                 <p className="text-sm">Ainda não há trabalhos neste processo.</p>
               </div>
             )}
+            {canEdit && <AdicionarTrabalhoForm nProcesso={n} tecnicos={tecnicos ?? []} />}
           </div>
 
           {/* Notas */}
