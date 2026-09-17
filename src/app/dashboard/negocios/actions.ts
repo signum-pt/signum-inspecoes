@@ -130,42 +130,33 @@ export async function aprovarNegocio(negocioId: string, opcoes: {
   // Converter negocio_servicos em trabalhos
   const servicos = (negocio as any).negocio_servicos ?? []
   if (servicos.length > 0) {
-    const trabalhos = servicos.map((s: any) => ({
-      n_processo: nProcesso,
-      especialidade: null as string | null,
-      descricao: s.descricao || null,
-      estado: 'a fazer',
-      ano: new Date().getFullYear(),
-      trabalho_id: s.id,
-    }))
-
-    // Buscar nome da especialidade via servico_id
+    // Buscar nomes das especialidades
     const servicoIds = servicos.filter((s: any) => s.servico_id).map((s: any) => s.servico_id)
+    const mapaServicos: Record<string, string> = {}
     if (servicoIds.length > 0) {
-      const { data: servicosData } = await supabase
-        .from('servicos')
-        .select('id, nome')
-        .in('id', servicoIds)
-
-      const mapaServicos: Record<string, string> = {}
+      const { data: servicosData } = await supabase.from('servicos').select('id, nome').in('id', servicoIds)
       for (const sv of servicosData ?? []) mapaServicos[sv.id] = sv.nome
-
-      for (const t of trabalhos) {
-        const srv = servicos.find((s: any) => s.id === t.trabalho_id)
-        if (srv?.servico_id) t.especialidade = mapaServicos[srv.servico_id] ?? null
-      }
     }
 
-    const { error: trabErr } = await supabase.from('trabalhos').insert(
-      trabalhos.map((t: any) => ({
-        n_processo: t.n_processo,
-        especialidade: t.especialidade,
-        descricao: t.descricao,
-        estado: t.estado,
-        ano: t.ano,
-      }))
-    )
-    if (trabErr) return { ok: false, error: trabErr.message }
+    // Inserir trabalhos um a um para capturar IDs e ligar ao negocio_servico
+    for (const s of servicos) {
+      const { data: trab, error: trabErr } = await supabase
+        .from('trabalhos')
+        .insert({
+          n_processo: nProcesso,
+          especialidade: s.servico_id ? (mapaServicos[s.servico_id] ?? null) : null,
+          descricao: s.descricao || null,
+          estado: 'a fazer',
+          ano: new Date().getFullYear(),
+        })
+        .select('id')
+        .single()
+
+      if (trabErr) return { ok: false, error: trabErr.message }
+
+      // Ligar o trabalho criado de volta ao negocio_servico
+      await supabase.from('negocio_servicos').update({ trabalho_id: trab.id }).eq('id', s.id)
+    }
   }
 
   // Atualizar negócio: status + n_processo
