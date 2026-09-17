@@ -233,7 +233,13 @@ function NegocioCard({
         </div>
       )}
 
-      <p className="text-sm font-semibold text-gray-900 leading-snug mb-1.5">{n.designacao}</p>
+      <Link
+        href={`/dashboard/negocios/${n.id}`}
+        onClick={e => e.stopPropagation()}
+        className="block text-sm font-semibold text-gray-900 leading-snug mb-1.5 hover:text-red-600 transition-colors"
+      >
+        {n.designacao}
+      </Link>
 
       {n.requerentes?.nome && (
         <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1">
